@@ -17,9 +17,7 @@ module testbench #(
     initial begin
         clk = 0;
         forever #(CLK_PERIOD/2) clk = ~clk;
-    end
-
-    
+    end    
 
     task axi_read(input [31:0] address, output [31:0] data);
         axi_port.ar_valid = 1;
