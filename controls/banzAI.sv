@@ -2,11 +2,13 @@
 
 module banzAI #(
   )(
-    input logic clk,
-    input logic rst_n,
+    ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_port
   ) ;
-
+  logic clk ; 
+  assign clk = seq_port.clk;
+  logic rst_n ;
+  assign rst_n = ~seq_port.rst;
   logic [31:0] registers [0:3]; // 16 registers of 32 bits
   // 0 : 0: reset | 1: set
   // 1 : pulse lenght
@@ -109,7 +111,6 @@ module banzAI #(
   end
 
   // part 2 FSM
-  // TODO: manage adresses 
   
   typedef enum int {
     IDLE, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_OUT, READ_ZERO,

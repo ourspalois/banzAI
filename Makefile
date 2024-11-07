@@ -5,7 +5,7 @@ CONDA_ENV = .EQUINOX
 #QUESTA
 
 #list of sv files : testbench.sv and everything in .sv in rtl/
-SV_FOLDER := rtl_chip controls  
+SV_FOLDER := rtl_chip controls includes
 SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir))
 SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv)) 
 
@@ -35,6 +35,7 @@ simulate: compile
 	vsim $(VSIM_FLAGS) -do wave.cmd testbench 
 
 clean:
+	rm test.txt transcript vsim.wlf
 	rm -r $(BUILD_DIR)
 
 .PHONY: all clean compile simulate gen_testbench

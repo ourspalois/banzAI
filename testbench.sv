@@ -7,13 +7,15 @@ module testbench #(
         .AXI_DATA_WIDTH(32),
         .AXI_ADDR_WIDTH(32)
     )axi_port ();
+    ADAM_SEQ seq () ; 
 
     banzAI #() dut(
-        .clk(clk),
-        .rst_n(rst_n),
+        .seq_port(seq),
         .axi_port(axi_port)
     );
 
+    assign seq.clk = clk;
+    assign seq.rst = ~rst_n;
     initial begin
         clk = 0;
         forever #(CLK_PERIOD/2) clk = ~clk;
