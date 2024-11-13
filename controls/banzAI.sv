@@ -9,9 +9,12 @@ module banzAI #(
   assign clk = seq_port.clk;
   logic rst_n ;
   assign rst_n = ~seq_port.rst;
-  logic [31:0] registers [0:3]; // 16 registers of 32 bits
-  // 0 : 0: reset | 1: set
-  // 1 : pulse lenght
+  logic [31:0] registers [0:7]; // 16 registers of 32 bits
+  // 0 : result
+  // 1 : pgm mode 0: reset | 1: set
+  // 2 : pulse lenght
+  // 3 .. 6 : O1, O2, O3, O4 // TODO USE THOSES !!!! 
+  // 7 : stoch_log : 0 : stoch / 1 : log
 
   logic read_mem, read_regs ;
   logic [10:0] read_addr ;// western reading style, likelihood arrays are continious in memory
@@ -20,21 +23,27 @@ module banzAI #(
   logic read_pulse_counter ;
   logic [7:0]  read_output_count ; 
 
+  logic read_result ;
+
   logic write_mem, write_regs ;
   logic [10:0] write_addr ;// western reading style, likelihood arrays are continious in memory
   logic [31:0] write_data ;
   logic [15:0] write_counter, write_pulse_counter ;
 
   logic ready ; 
-  assign ready = ~(read_mem || read_regs || write_mem || write_regs) ;
+  assign ready = ~(read_mem || read_regs || read_result || write_mem || write_regs) ;
 
   // part 1 AXI interface and control registers
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       registers[0] <= 32'h0;
-      registers[1] <= 32'h1;
-      registers[2] <= 32'h0;
+      registers[1] <= 32'h0;
+      registers[2] <= 32'h1;
       registers[3] <= 32'h0;
+      registers[4] <= 32'h0;
+      registers[5] <= 32'h0;
+      registers[6] <= 32'h0;
+      registers[7] <= 32'h0;
       axi_port.r_valid <= 1'b0;
       axi_port.b_valid <= 1'b0;
       axi_port.ar_ready <= 1'b0;
@@ -46,15 +55,19 @@ module banzAI #(
       read_counter <= 16'b0;
       read_output_count <= 8'b0;
       read_pulse_counter <= 1'b0;
+      read_result <= 1'b0;
       write_mem <= 1'b0;
       write_regs <= 1'b0;
       write_counter <= 16'b0;
       write_pulse_counter <= 16'b0;
     end
     else begin
+      // read management
       if(axi_port.ar_valid && ready) begin
-        if(axi_port.ar_addr < 31'h2000) begin
+        if(axi_port.ar_addr < 32'h2000) begin
           read_mem <= 1'b1;
+        end else if(axi_port.ar_addr == 32'h2000) begin
+          read_result <= 1'b1;
         end else begin
           read_regs <= 1'b1;
         end 
@@ -64,20 +77,28 @@ module banzAI #(
         axi_port.ar_ready <= 1'b0;
       end
 
-      if(read_regs && axi_port.r_ready) begin
-        axi_port.r_data <= registers[read_addr[3+:2]];
-        axi_port.r_valid <= 1'b1;
-        read_regs <= 1'b0;
-      end else if(read_mem && read_counter>= 4) begin
-        axi_port.r_data <= read_data;
-        axi_port.r_valid <= 1'b1;
-        read_mem <= 1'b0;
-        read_counter <= 16'b0;
-      end else begin
-        axi_port.r_valid <= 1'b0;
+      // read response management
+      if(axi_port.r_ready) begin
+        if(read_regs) begin
+          axi_port.r_data <= registers[read_addr[0+:3]];
+          axi_port.r_valid <= 1'b1;
+          read_regs <= 1'b0;
+        end else if(read_result && read_counter>= 4 && read_output_count==11 ) begin
+          axi_port.r_data <= registers[0];
+          axi_port.r_valid <= 1'b1;
+          read_result <= 1'b0;
+          read_counter <= 16'b0;
+        end else if(read_mem && read_counter>= 4) begin
+          axi_port.r_data <= read_data;
+          axi_port.r_valid <= 1'b1;
+          read_mem <= 1'b0;
+          read_counter <= 16'b0;
+        end else begin
+          axi_port.r_valid <= 1'b0;
+        end
       end
 
-
+      // write management
       if(axi_port.aw_valid && axi_port.w_valid && ready) begin
         if(axi_port.aw_addr < 31'h2000) begin
           write_mem <= 1'b1;
@@ -93,8 +114,9 @@ module banzAI #(
         axi_port.w_ready <= 1'b0;
       end
 
+      // write response management
       if(write_regs && axi_port.b_ready) begin
-        registers[write_addr[3:+2]] <= write_data;
+        registers[write_addr[0+:3]] <= write_data;
         axi_port.b_resp <= 0;
         axi_port.b_valid <= 1'b1;
         write_regs <= 1'b0;
@@ -114,7 +136,9 @@ module banzAI #(
   
   typedef enum int {
     IDLE, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_OUT, READ_ZERO,
-    WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF
+    WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
+    READOUT_RESULT
+
   } state_t;
   state_t state;
 
@@ -128,10 +152,13 @@ module banzAI #(
   always_ff @(posedge clk) begin
     if(!rst_n) begin
       state <= IDLE;
+      read_count <= 8'b0;
     end else begin
       case (state)
         IDLE: begin
           if(read_mem && !(read_counter == 4)) begin
+            state <= READ_SETUP;
+          end else if(read_result && !(read_counter == 4)) begin 
             state <= READ_SETUP;
           end else if (write_mem && !(write_counter==32)) begin
             state <= WRITE_ADDR;
@@ -152,7 +179,16 @@ module banzAI #(
           end
         end
         READ_OFF: begin
-          state <= READ_OUT;
+          if(read_mem ) begin
+            state <= READ_OUT;
+          end else if (read_result) begin
+            if(read_counter == 3) begin
+              state <= READOUT_RESULT; 
+            end else begin
+              state <= IDLE;
+            end
+            read_counter <= read_counter + 1;
+          end
         end
         READ_OUT: begin
           if(read_output_count == 11) begin
@@ -169,6 +205,21 @@ module banzAI #(
         READ_ZERO: begin
           state <= IDLE;
         end
+        READOUT_RESULT: begin
+          if(read_output_count == 11) begin
+            read_output_count <= 8'b0;
+            state <= READ_ZERO;
+          end else if(read_output_count > 2) begin
+            //read_data <= (read_data<<1) | 1'(bit_out[read_addr[10:9]]);
+            registers[0][7:0] <= (registers[0][7:0]<<1)   | 1'(bit_out[0]);
+            registers[0][15:8] <= (registers[0][15:8]<<1) | 1'(bit_out[1]);
+            registers[0][23:16] <= (registers[0][23:16]<<1) | 1'(bit_out[2]);
+            registers[0][31:24] <= (registers[0][31:24]<<1) | 1'(bit_out[3]);
+            read_output_count <= read_output_count + 1;
+          end else begin
+            read_output_count <= read_output_count + 1;
+          end
+        end
       
         WRITE_ADDR: begin
           state <= WRITE_PECHARGE;
@@ -177,7 +228,7 @@ module banzAI #(
           state <= WRITE_PULSE;
         end
         WRITE_PULSE: begin
-          if(write_pulse_counter >= registers[1]) begin
+          if(write_pulse_counter >= registers[2]) begin
             state <= WRITE_CUTOFF;
             write_pulse_counter <= 16'b0;
           end else begin
@@ -216,13 +267,19 @@ module banzAI #(
         seeds <= 8'b0;
       end
       READ_SETUP: begin
-        adr_full_col <= {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
-        adr_full_row <= {read_addr[10:9], read_addr[6:1]};
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
+        if(read_result) begin
+          adr_full_col <= {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
+          adr_full_row <= {2'b0, registers[3+read_counter][8:3]};
+        end else begin
+          adr_full_col <= {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
+          adr_full_row <= {read_addr[10:9], read_addr[6:1]};
+        end
+        
         read_out <= 1'b0;
       end
       READ_PRECHARGE: begin
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
         CSL <= 1'b1;
         CWL <= 1'b1;
       end
@@ -241,6 +298,9 @@ module banzAI #(
         load_mem <= 1'b1;
         stoch_log <= 1'b0;
       end
+      READOUT_RESULT: begin
+        read_out <= 1'b1;
+      end
 
       WRITE_ADDR: begin
         adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
@@ -249,7 +309,7 @@ module banzAI #(
       end
       WRITE_PECHARGE: begin
         CBL <= write_data[write_counter];
-        CSL <= registers[0][0];
+        CSL <= registers[1][0];
       end
       WRITE_PULSE: begin
         CWL <= 1'b1;

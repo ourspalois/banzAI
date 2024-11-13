@@ -85,8 +85,8 @@ module testbench #(
                 axi_write(address, data_in);
             end
             else if($sscanf(line, "read | %h | %h", address, expected_data) == 2) begin
-                $display("Reading from address %h", address);
                 axi_read(address, data_out);
+                $display("Reading from address %h, data : %h", address, data_out);
                 assert (data_out == expected_data ) else $display("Error: Data mismatch at address %h. Expected: %h, Got: %h", address, expected_data, data_out);
             end
             

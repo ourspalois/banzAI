@@ -12,9 +12,6 @@ SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv))
 #build directory
 BUILD_DIR = work
 
-#Verilator options 
-VERILATOR_FLAGS = --binary --trace-fst --assert -j 14 --Irtl --trace-params --trace-max-array 1024 $(SV_INCLUDE)
-
 # ModelSim options
 VSIM_FLAGS = -voptargs="+acc" 
 
