@@ -52,13 +52,11 @@ module banzAI #(
       read_mem <= 1'b0;
       read_regs <= 1'b0;
       read_data <= 32'b0;
-      read_counter <= 16'b0;
       read_output_count <= 8'b0;
       read_pulse_counter <= 1'b0;
       read_result <= 1'b0;
       write_mem <= 1'b0;
       write_regs <= 1'b0;
-      write_counter <= 16'b0;
       write_pulse_counter <= 16'b0;
     end
     else begin
@@ -87,12 +85,10 @@ module banzAI #(
           axi_port.r_data <= registers[0];
           axi_port.r_valid <= 1'b1;
           read_result <= 1'b0;
-          read_counter <= 16'b0;
         end else if(read_mem && read_counter>= 4) begin
           axi_port.r_data <= read_data;
           axi_port.r_valid <= 1'b1;
           read_mem <= 1'b0;
-          read_counter <= 16'b0;
         end else begin
           axi_port.r_valid <= 1'b0;
         end
@@ -124,7 +120,6 @@ module banzAI #(
         axi_port.b_resp <= 0;
         axi_port.b_valid <= 1'b1;
         write_mem <= 1'b0;
-        write_counter <= 16'b0;
       end else begin
         axi_port.b_valid <= 1'b0;
       end
@@ -153,15 +148,23 @@ module banzAI #(
     if(!rst_n) begin
       state <= IDLE;
       read_count <= 8'b0;
+      read_counter <= 16'b0;
+      write_counter <= 16'b0;
     end else begin
       case (state)
         IDLE: begin
-          if(read_mem && !(read_counter == 4)) begin
-            state <= READ_SETUP;
-          end else if(read_result && !(read_counter == 4)) begin 
-            state <= READ_SETUP;
-          end else if (write_mem && !(write_counter==32)) begin
-            state <= WRITE_ADDR;
+          if(read_counter == 4 ) begin
+            read_counter <= 16'b0;
+          end else if(write_counter == 32) begin
+            write_counter <= 16'b0;
+          end else begin
+            if(read_mem) begin
+              state <= READ_SETUP;
+            end else if(read_result) begin 
+              state <= READ_SETUP;
+            end else if (write_mem) begin
+              state <= WRITE_ADDR;
+            end
           end
         end
         READ_SETUP: begin

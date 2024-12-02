@@ -3,4 +3,4 @@ add wave /testbench/dut/*
 add wave sim:/testbench/dut/registers
 add wave sim:/testbench/dut/chip/DATA_next
 
-run 10us 
+run -all
