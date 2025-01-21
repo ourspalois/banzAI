@@ -9,7 +9,7 @@ module testbench #(
     )axi_port ();
     ADAM_SEQ seq () ; 
 
-    banzAI #() dut(
+    chip_control #() dut(
         .seq_port(seq),
         .axi_port(axi_port)
     );

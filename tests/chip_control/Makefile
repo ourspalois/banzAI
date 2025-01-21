@@ -2,10 +2,10 @@
 # cause I need jax (because I am a crackhead)
 CONDA_ENV = .EQUINOX_ENV
 
-#QUESTA
+HOME := ../../
 
 #list of sv files : testbench.sv and everything in .sv in rtl/
-SV_FOLDER := rtl_chip controls includes
+SV_FOLDER := $(HOME)rtl_chip $(HOME)controls $(HOME)includes
 SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir))
 SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv)) 
 
@@ -24,9 +24,9 @@ $(BUILD_DIR):
 	vlib $(BUILD_DIR)
 
 compile: $(BUILD_DIR)
-	vlog $(SV_INCLUDE) axi/src/axi_pkg.sv
-	vlog $(SV_INCLUDE) +incdir+axi/include axi/src/axi_intf.sv
-	vlog $(SV_INCLUDE) $(SV_FILES) testbench.sv
+	vlog $(SV_INCLUDE) $(HOME)axi/src/axi_pkg.sv
+	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv
+	vlog $(SV_INCLUDE) $(SV_FILES) chip_control_tb.sv
 
 simulate: compile
 	vsim $(VSIM_FLAGS) -do wave.cmd testbench &
