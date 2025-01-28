@@ -2,8 +2,10 @@
 HOME := ../../
 #list of sv files : testbench.sv and everything in .sv in rtl/
 SV_FOLDER := $(HOME)rtl_chip $(HOME)controls $(HOME)includes
-SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir))
+SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir)/)
 SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv)) 
+
+SVH_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.svh))
 
 #build directory
 BUILD_DIR = work
@@ -18,8 +20,8 @@ $(BUILD_DIR):
 
 compile: $(BUILD_DIR)
 	vlog $(SV_INCLUDE) $(HOME)axi/src/axi_pkg.sv
-	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv
-	vlog $(SV_INCLUDE) $(SV_FILES) PWR_CTRL_tb.sv
+	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv $(HOME)includes/adam_cfg_pkg.sv
+	vlog $(SV_INCLUDE) +incdir+$(SVH_FILES) $(SV_FILES) PWR_CTRL_tb.sv
 
 simulate: compile
 	vsim $(VSIM_FLAGS) -do wave.cmd testbench & 

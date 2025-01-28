@@ -1,5 +1,8 @@
+`include "macros.svh"
+
 module testbench #(
-    parameter CLK_PERIOD = 10    
+    parameter CLK_PERIOD = 10, 
+    `ADAM_CFG_PARAMS
 )();
 
     logic clk, rst_n;
@@ -45,17 +48,13 @@ module testbench #(
             axi_master.aw_ready = 1;
             axi_master.w_ready = 1;
             if(axi_master.aw_valid) begin
-                case(axi_master.aw_addr)
-                    32'h0: begin
-                        $display("HSDOM toggle");
-                    end
-                    32'h1: begin
-                        $display("LS RAM toggle");
-                    end
-                    32'h2: begin
-                        $display("LS CPU toggle");
-                    end
-                endcase
+                $display("Write to address %h", axi_master.aw_addr);
+                if(axi_master.aw_addr >= MMAP_SYSCFG.start && axi_master.aw_addr < MMAP_SYSCFG.end_) begin
+                    $display("CHANGING POWER STATUS");
+                    axi_master.b_valid = 1;
+                end else begin
+                    axi_master.b_valid = 0;
+                end
                 axi_master.b_valid = 1;
             end else begin
                 axi_master.b_valid = 0;

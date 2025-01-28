@@ -1,0 +1,67 @@
+vlog  +incdir+../../rtl_chip  +incdir+../../controls  +incdir+../../includes ../../axi/src/axi_pkg.sv
+QuestaSim-64 vlog 10.7g Compiler 2020.08 Aug  1 2020
+Start time: 11:52:39 on Jan 24,2025
+vlog "+incdir+../../rtl_chip" "+incdir+../../controls" "+incdir+../../includes" ../../axi/src/axi_pkg.sv 
+-- Compiling package axi_pkg
+
+Top level modules:
+	--none--
+End time: 11:52:39 on Jan 24,2025, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+vlog  +incdir+../../rtl_chip  +incdir+../../controls  +incdir+../../includes +incdir+../../axi/include ../../axi/src/axi_intf.sv
+QuestaSim-64 vlog 10.7g Compiler 2020.08 Aug  1 2020
+Start time: 11:52:39 on Jan 24,2025
+vlog "+incdir+../../rtl_chip" "+incdir+../../controls" "+incdir+../../includes" "+incdir+../../axi/include" ../../axi/src/axi_intf.sv 
+-- Compiling interface AXI_BUS
+-- Importing package axi_pkg
+-- Compiling interface AXI_BUS_DV
+-- Compiling interface AXI_BUS_ASYNC
+-- Compiling interface AXI_BUS_ASYNC_GRAY
+-- Compiling interface AXI_LITE
+-- Compiling interface AXI_LITE_DV
+-- Compiling interface AXI_LITE_ASYNC_GRAY
+
+Top level modules:
+	--none--
+End time: 11:52:39 on Jan 24,2025, Elapsed time: 0:00:00
+Errors: 0, Warnings: 0
+vlog  +incdir+../../rtl_chip  +incdir+../../controls  +incdir+../../includes ../../rtl_chip/additions.sv ../../rtl_chip/Bayesian_stoch_log.sv ../../rtl_chip/bot_logic_log.sv ../../rtl_chip/bot_logic.sv ../../rtl_chip/complex_decoder_left.sv ../../rtl_chip/complex_decoder_top.sv ../../rtl_chip/decoder_bot.sv ../../rtl_chip/decoder_left.sv ../../rtl_chip/decoder_right.sv ../../rtl_chip/decoder_top.sv ../../rtl_chip/Gupta.sv ../../rtl_chip/LFSR_1bL.sv ../../rtl_chip/likelihood.sv ../../rtl_chip/MC_64x64_FULL_upd.sv ../../rtl_chip/register_out.sv ../../rtl_chip/selecting.sv ../../controls/axi_read.sv ../../controls/axi_write.sv ../../controls/banzAI.sv ../../controls/chip_control.sv ../../controls/PWR_CTRL.sv ../../includes/adam_cfg_pkg.sv ../../includes/adam_intf_seq.sv  PWR_CTRL_tb.sv
+QuestaSim-64 vlog 10.7g Compiler 2020.08 Aug  1 2020
+Start time: 11:52:39 on Jan 24,2025
+vlog "+incdir+../../rtl_chip" "+incdir+../../controls" "+incdir+../../includes" ../../rtl_chip/additions.sv ../../rtl_chip/Bayesian_stoch_log.sv ../../rtl_chip/bot_logic_log.sv ../../rtl_chip/bot_logic.sv ../../rtl_chip/complex_decoder_left.sv ../../rtl_chip/complex_decoder_top.sv ../../rtl_chip/decoder_bot.sv ../../rtl_chip/decoder_left.sv ../../rtl_chip/decoder_right.sv ../../rtl_chip/decoder_top.sv ../../rtl_chip/Gupta.sv ../../rtl_chip/LFSR_1bL.sv ../../rtl_chip/likelihood.sv ../../rtl_chip/MC_64x64_FULL_upd.sv ../../rtl_chip/register_out.sv ../../rtl_chip/selecting.sv ../../controls/axi_read.sv ../../controls/axi_write.sv ../../controls/banzAI.sv ../../controls/chip_control.sv ../../controls/PWR_CTRL.sv ../../includes/adam_cfg_pkg.sv ../../includes/adam_intf_seq.sv PWR_CTRL_tb.sv 
+-- Compiling module additions
+-- Compiling module Bayesian_stoch_log
+-- Compiling module bot_logic_log
+-- Compiling module bot_logic
+-- Compiling module complex_decoder_left
+-- Compiling module complex_decoder_top
+-- Compiling module decoder_bot
+-- Compiling module decoder_left
+-- Compiling module decoder_right
+-- Compiling module decoder_top
+-- Compiling module Gupta
+-- Compiling module LFSR_1bL
+-- Compiling module likelihood
+-- Compiling module MC_64x64_FULL_upd
+-- Compiling module line_matrix
+-- Compiling module cell_matrix
+-- Compiling module register_out
+** Warning: ../../rtl_chip/register_out.sv(5): (vlog-13314) Defaulting port 'data_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module compteur
+-- Compiling module selecting
+-- Compiling module axi_read
+-- Compiling module axi_write
+-- Compiling module banzAI
+** Error: ../../controls/banzAI.sv(4): (vlog-2163) Macro `ADAM_CFG_PARAMS is undefined.
+-- Compiling module chip_control
+-- Compiling module PWR_CTRL
+** Error: ../../controls/PWR_CTRL.sv(3): (vlog-2163) Macro `ADAM_CFG_PARAMS is undefined.
+** Error: (vlog-13069) ../../controls/PWR_CTRL.sv(4): near ")": syntax error, unexpected ')'.
+-- Compiling package adam_cfg_pkg
+-- Compiling interface ADAM_SEQ
+** Error: PWR_CTRL_tb.sv(1): Cannot find `include file "macro.shv" in directories:
+    ../../rtl_chip, ../../controls, ../../includes, /usr/local/questa/questasim/ovm-2.1.2/../verilog_src/ovm-2.1.2/src, /usr/local/questa/questasim/uvm-1.1d/../verilog_src/uvm-1.1d/src
+-- Compiling module testbench
+** Error: PWR_CTRL_tb.sv(6): (vlog-2163) Macro `ADAM_CFG_LOCALPARAMS is undefined.
+End time: 11:52:40 on Jan 24,2025, Elapsed time: 0:00:01
+Errors: 5, Warnings: 1

@@ -1,6 +1,9 @@
+`include "macros.svh"
+
 module PWR_CTRL #(
-    parameter int reg_num = 16
-) (
+    parameter int reg_num = 16,
+    `ADAM_CFG_PARAMS
+)(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_port[2], 
     AXI_LITE.Master axi_master
@@ -29,7 +32,6 @@ module PWR_CTRL #(
   //6 .. A : observation adresses 
 
   // 10 wait counter lenght 
-
   
   // AXIl slave management
   logic read_regs ;
@@ -62,10 +64,10 @@ module PWR_CTRL #(
       registers[5][6+:6] <= 6'b11_0001; // WAKE LS RAM
       registers[5][12+:6] <= 6'b11_0010; // WAKE LS CPU
       //obs
-      registers[6] <= 32'h0; // TODO use ADAM pkg for integration of adresses 
-      registers[7] <= 32'h0;
-      registers[8] <= 32'h0;
-      registers[9] <= 32'h0;
+      registers[6] <= MMAP_ACCEL.start + 3*4 ; 
+      registers[7] <= MMAP_ACCEL.start + 4*4 ;
+      registers[8] <= MMAP_ACCEL.start + 5*4 ;
+      registers[9] <= MMAP_ACCEL.start + 6*4 ;
       //wait lenght
       registers[10] <= 32'h0;
 
@@ -129,8 +131,6 @@ module PWR_CTRL #(
           pwr_launch <= 0;
         end
       end
-
-
     end
   end
 
@@ -199,6 +199,7 @@ module PWR_CTRL #(
       fsm_req <= 1'b0;
       fsm_adress <= 32'h0;
       fsm_data <= 32'h0;
+      compute_done <= 1'b0;
     end else begin
       if(state == FETCH) begin
         case (fetch_state)
@@ -235,7 +236,7 @@ module PWR_CTRL #(
         case (compute_read)
           GET: begin
             if(axi_read_ready && !compute_done) begin
-              axi_read_addr <= 32'h2000 ; //TODO: adress management
+              axi_read_addr <= MMAP_ACCEL.start ; 
               axi_read_req <= 1;
               compute_read <= RECEIVE;
             end
@@ -310,7 +311,8 @@ module PWR_CTRL #(
       endcase
 
       old_state <= state;
-      if(old_state != state) begin
+      if(old_state != state && registers[1 + transition_number][0+:6] != 6'b11_1111) begin
+        $display("register content; %b", registers[1 + pwr_transition][0+:6]);
         pwr_ctrl_en <= 1;
         case (old_state)
           IDLE: pwr_transition <= 8'h0;
@@ -327,7 +329,7 @@ module PWR_CTRL #(
           pwr_counter <= pwr_counter + 4'b1;
           maestro_req <= 0;
         end else begin
-          maestro_address <= {28'b0,  registers[1 + pwr_transition][(6*pwr_counter)+:4]} ; // register adress management
+          maestro_address <= MMAP_SYSCFG.start | {28'b0,  registers[1 + pwr_transition][(6*pwr_counter)+:4]} ; // register adress management
           maestro_data <= {30'b0, registers[1 + pwr_transition][(6*pwr_counter)+4 +:2]} +1  ; // register data management
           maestro_req <= 1;
         end
@@ -337,7 +339,6 @@ module PWR_CTRL #(
       end
     end
   end
-
 
   axi_write write_port(
     .seq_port(seq_port),
