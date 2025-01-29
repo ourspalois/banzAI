@@ -1,4 +1,4 @@
-`include "macros.svh"
+`include "adam/macros.svh"
 
 module testbench #(
     parameter CLK_PERIOD = 10, 

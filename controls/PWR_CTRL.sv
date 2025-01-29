@@ -1,4 +1,4 @@
-`include "macros.svh"
+`include "adam/macros.svh"
 
 module PWR_CTRL #(
     parameter int reg_num = 16,

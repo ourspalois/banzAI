@@ -1,5 +1,5 @@
 // controls for the big bayesian machine 
-`include "macros.svh"
+`include "adam/macros.svh"
 
 module banzAI #(
   `ADAM_CFG_PARAMS
