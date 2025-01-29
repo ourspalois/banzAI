@@ -13,7 +13,7 @@ module chip_control #(
   // 0 : result
   // 1 : pgm mode 0: reset | 1: set
   // 2 : pulse lenght
-  // 3 .. 6 : O1, O2, O3, O4 // TODO USE THOSES !!!! 
+  // 3 .. 6 : O1, O2, O3, O4 
   // 7 : stoch_log : 0 : stoch / 1 : log
 
   logic read_mem, read_regs ;
@@ -43,7 +43,7 @@ module chip_control #(
       registers[4] <= 32'h0;
       registers[5] <= 32'h0;
       registers[6] <= 32'h0;
-      registers[7] <= 32'h0;
+      registers[7] <= 32'h1;
       axi_port.r_valid <= 1'b0;
       axi_port.b_valid <= 1'b0;
       axi_port.ar_ready <= 1'b0;

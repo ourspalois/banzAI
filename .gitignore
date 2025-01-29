@@ -3,3 +3,4 @@ test.txt
 transcript 
 *.wlf
 temp/
+*.vcd

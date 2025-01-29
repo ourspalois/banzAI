@@ -5,7 +5,7 @@ module PWR_CTRL #(
     `ADAM_CFG_PARAMS
 )(
     ADAM_SEQ.Slave seq_port,
-    AXI_LITE.Slave axi_port[2], 
+    AXI_LITE.Slave axi_port, 
     AXI_LITE.Master axi_master
   );
 
@@ -31,7 +31,10 @@ module PWR_CTRL #(
 
   //6 .. A : observation adresses 
 
-  // 10 wait counter lenght 
+  //10 wait counter lenght 
+
+  //11 .. 14 : observation sources
+  //15 : alarm levels
   
   // AXIl slave management
   logic read_regs ;
@@ -63,70 +66,79 @@ module PWR_CTRL #(
       registers[5][0+:6] <= 6'b11_0000; // WAKE HSDOM 
       registers[5][6+:6] <= 6'b11_0001; // WAKE LS RAM
       registers[5][12+:6] <= 6'b11_0010; // WAKE LS CPU
-      //obs
-      registers[6] <= MMAP_ACCEL.start + 3*4 ; 
-      registers[7] <= MMAP_ACCEL.start + 4*4 ;
-      registers[8] <= MMAP_ACCEL.start + 5*4 ;
-      registers[9] <= MMAP_ACCEL.start + 6*4 ;
+      //obs destinations
+      registers[6] <= MMAP_ACCEL.start + 32'h2000 + 3*4 ; 
+      registers[7] <= MMAP_ACCEL.start + 32'h2000 + 4*4 ;
+      registers[8] <= MMAP_ACCEL.start + 32'h2000 + 5*4 ;
+      registers[9] <= MMAP_ACCEL.start + 32'h2000 + 6*4 ;
+
       //wait lenght
       registers[10] <= 32'h0;
 
-      axi_port[0].r_valid <= 1'b0;
-      axi_port[0].b_valid <= 1'b0;
-      axi_port[0].ar_ready <= 1'b0;
-      axi_port[0].aw_ready <= 1'b0;
-      axi_port[0].w_ready <= 1'b0;
+      //obs sources 
+      registers[11] <= 32'h0 ;
+      registers[12] <= 32'h1 ;
+      registers[13] <= 32'h2 ;
+      registers[14] <= 32'h3 ;
+
+      registers[15] <= 32'h00_00_00_00; ;
+
+      axi_port.r_valid <= 1'b0;
+      axi_port.b_valid <= 1'b0;
+      axi_port.ar_ready <= 1'b0;
+      axi_port.aw_ready <= 1'b0;
+      axi_port.w_ready <= 1'b0;
       read_regs <= 1'b0;
       write_regs <= 1'b0;
     end
     else begin
       // read management
-      if(axi_port[0].ar_valid && ready) begin
-        if(axi_port[0].ar_addr < 32'h2000) begin
+      if(axi_port.ar_valid && ready) begin
+        if(axi_port.ar_addr < 32'h2000) begin
           read_regs <= 1'b1;
         end 
-        axi_port[0].ar_ready <= 1'b1;
-        read_addr <= axi_port[0].ar_addr[2+:11];
+        axi_port.ar_ready <= 1'b1;
+        read_addr <= axi_port.ar_addr[2+:11];
       end else begin
-        axi_port[0].ar_ready <= 1'b0;
+        axi_port.ar_ready <= 1'b0;
       end
 
       // read response management
-      if(axi_port[0].r_ready) begin
+      if(axi_port.r_ready) begin
         if(read_regs) begin
-          axi_port[0].r_data <= registers[read_addr[0+:3]];
-          axi_port[0].r_valid <= 1'b1;
+          axi_port.r_data <= registers[read_addr[0+:3]];
+          axi_port.r_valid <= 1'b1;
           read_regs <= 1'b0;
         end else begin
-          axi_port[0].r_valid <= 1'b0;
+          axi_port.r_valid <= 1'b0;
         end
       end
 
       // write management
-      if(axi_port[0].aw_valid && axi_port[0].w_valid && ready) begin
-        if(axi_port[0].aw_addr < 31'h2000) begin
+      if(axi_port.aw_valid && axi_port.w_valid && ready) begin
+        if(axi_port.aw_addr < 31'h2000) begin
           write_regs <= 1'b1;
         end
-        axi_port[0].aw_ready <= 1'b1;
-        axi_port[0].w_ready <= 1'b1;
-        write_addr <= axi_port[0].aw_addr[2+:11];
-        write_data <= axi_port[0].w_data;
+        axi_port.aw_ready <= 1'b1;
+        axi_port.w_ready <= 1'b1;
+        write_addr <= axi_port.aw_addr[2+:11];
+        write_data <= axi_port.w_data;
       end else begin
-        axi_port[0].aw_ready <= 1'b0;
-        axi_port[0].w_ready <= 1'b0;
+        axi_port.aw_ready <= 1'b0;
+        axi_port.w_ready <= 1'b0;
       end
 
       // write response management
-      if(write_regs && axi_port[0].b_ready) begin
+      if(write_regs && axi_port.b_ready) begin
         if (write_addr[0+:3] == 3'b0) begin
           pwr_launch <= 1;
         end 
         registers[write_addr[0+:4]] <= write_data;
-        axi_port[0].b_resp <= 0;
-        axi_port[0].b_valid <= 1'b1;
+        axi_port.b_resp <= 0;
+        axi_port.b_valid <= 1'b1;
         write_regs <= 1'b0;
       end else begin
-        axi_port[0].b_valid <= 1'b0;
+        axi_port.b_valid <= 1'b0;
         if(state != IDLE) begin
           pwr_launch <= 0;
         end
@@ -159,6 +171,7 @@ module PWR_CTRL #(
   logic compute_done, alert ;
   typedef enum int { GET, RECEIVE } read_ctrl_t;
   read_ctrl_t compute_read ;
+  logic [31:0] result ;
 
   always_ff @( posedge clk ) begin 
     if(!rst_n) begin
@@ -182,7 +195,11 @@ module PWR_CTRL #(
         end
         COMPUTE: begin
           if(compute_done) begin
-            state <= IDLE ; //TODO : implement alert detection
+            if(result[0+:8] >= registers[15][0+:8] || result[8+:8] >= registers[15][8+:8] || result[16+:8] >= registers[15][16+:8] || result[24+:8] >= registers[15][24+:8]) begin
+              state <= IDLE ;
+            end else begin
+              state <= WAIT ; 
+            end
           end
         end
         default: begin
@@ -206,7 +223,7 @@ module PWR_CTRL #(
           GET_SEND: begin
             fsm_req <= 0;
             if(axi_read_ready && fetch_counter != 32'h4) begin
-              axi_read_addr <= registers[fetch_counter+6] ; 
+              axi_read_addr <= registers[fetch_counter+11] ; 
               axi_read_req <= 1;
               fetch_state <= GET_RECEIVE;
             end
@@ -245,6 +262,7 @@ module PWR_CTRL #(
             axi_read_req <= 0;
             if(axi_read_valid) begin
               compute_done <= 1;
+              result <= axi_read_data;
               compute_read <= GET;
             end
           end
@@ -292,27 +310,37 @@ module PWR_CTRL #(
   logic maestro_req, maestro_valid, maestro_ack ;
   logic [7:0] transition_number, pwr_transition ; 
 
-  always_ff @( posedge clk ) begin
+  // adress lookup table 
+  logic [31:0] maestro_adress_lut [0:15] ;
+  assign maestro_adress_lut[0] = MMAP_SYSCFG.start + (4 * 1 + 1) * 4   ; //HSDOM
+  assign maestro_adress_lut[1] = MMAP_SYSCFG.start + (4 * (5) + 1) * 4   ; //LSCPU
+  assign maestro_adress_lut[2] = MMAP_SYSCFG.start + (4 * (6) + 1) * 4   ; //LPRAM
+
+  always_comb begin 
     if(!rst_n) begin
-      old_state <= IDLE;      
-      pwr_ctrl_en <= 0;
-      pwr_counter <= 32'h0;
       transition_number <= 8'h0;
-      pwr_transition <= 8'h0;
-      maestro_address <= 32'h0;
-      maestro_data <= 32'h0;
-      maestro_req <= 0;
-    end else begin 
+    end else begin
       case (old_state)
           IDLE: transition_number <= 8'h0;
           WAIT: transition_number <= 8'h1;
           FETCH: transition_number <= 8'h2;
           COMPUTE: if(state == WAIT) begin transition_number <= 8'h3; end else begin transition_number <= 8'h4; end
       endcase
+    end
+  end
 
+  always_ff @( posedge clk ) begin
+    if(!rst_n) begin
+      old_state <= IDLE;      
+      pwr_ctrl_en <= 0;
+      pwr_counter <= 32'h0;
+      pwr_transition <= 8'h0;
+      maestro_address <= 32'h0;
+      maestro_data <= 32'h0;
+      maestro_req <= 0;
+    end else begin 
       old_state <= state;
       if(old_state != state && registers[1 + transition_number][0+:6] != 6'b11_1111) begin
-        $display("register content; %b", registers[1 + pwr_transition][0+:6]);
         pwr_ctrl_en <= 1;
         case (old_state)
           IDLE: pwr_transition <= 8'h0;
@@ -320,7 +348,7 @@ module PWR_CTRL #(
           FETCH: pwr_transition <= 8'h2;
           COMPUTE: if(state == WAIT) begin pwr_transition <= 8'h3; end else begin pwr_transition <= 8'h4; end
         endcase
-      end else if(pwr_ctrl_en && registers[1 + pwr_transition][6*(pwr_counter+1)+:6] == 6'b11_1111) begin 
+      end else if(pwr_ctrl_en && registers[1 + pwr_transition][6*(pwr_counter+1)+:6] == 6'b11_1111) begin
         pwr_ctrl_en <= 0;
       end
 
@@ -329,7 +357,7 @@ module PWR_CTRL #(
           pwr_counter <= pwr_counter + 4'b1;
           maestro_req <= 0;
         end else begin
-          maestro_address <= MMAP_SYSCFG.start | {28'b0,  registers[1 + pwr_transition][(6*pwr_counter)+:4]} ; // register adress management
+          maestro_address <= maestro_adress_lut[registers[1 + pwr_transition][(6*pwr_counter)+:4]] ; // register adress management
           maestro_data <= {30'b0, registers[1 + pwr_transition][(6*pwr_counter)+4 +:2]} +1  ; // register data management
           maestro_req <= 1;
         end

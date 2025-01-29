@@ -26,11 +26,10 @@ module testbench #(
 
     ADAM_SEQ seq () ;
 
-    PWR_CTRL #(
-        .reg_num(16)
+    banzAI #(
     ) dut(
         .seq_port(seq),
-        .axi_port(axi_slave[0]), 
+        .axi_slave(axi_slave), 
         .axi_master(axi_master)
     );
 
@@ -48,12 +47,13 @@ module testbench #(
             axi_master.aw_ready = 1;
             axi_master.w_ready = 1;
             if(axi_master.aw_valid) begin
-                $display("Write to address %h", axi_master.aw_addr);
                 if(axi_master.aw_addr >= MMAP_SYSCFG.start && axi_master.aw_addr < MMAP_SYSCFG.end_) begin
-                    $display("CHANGING POWER STATUS");
-                    axi_master.b_valid = 1;
+                    $display("CHANGING POWER STATE of component %b, with state %b", (axi_master.aw_addr - MMAP_SYSCFG.start )>>2, axi_master.w_data ); 
+                end else if(axi_master.aw_addr >= MMAP_ACCEL.start && axi_master.aw_addr < MMAP_ACCEL.end_) begin
+                    $display("writing to accelerator, at adress : %h", axi_master.aw_addr);
+                    axi_write(1, axi_master.aw_addr ^ MMAP_ACCEL.start, axi_master.w_data);
                 end else begin
-                    axi_master.b_valid = 0;
+                    $display("Write to address %h", axi_master.aw_addr);
                 end
                 axi_master.b_valid = 1;
             end else begin
@@ -129,12 +129,39 @@ module testbench #(
         reset();
         $display("Reset complete");
 
-        axi_write(0, 32'h28, 32'h1f4);
+        // first we program the chip 
+        axi_write(1, 32'h0   <<2, 32'hf);
+        axi_write(1, 32'h80  <<2, 32'hf);
+        axi_write(1, 32'h100 <<2, 32'hf);
+        axi_write(1, 32'h180 <<2, 32'hf);
+        axi_write(1, 32'h2004, 32'h1) ; // RESET/SET MODE
+        axi_write(1, 32'h0   <<2, 32'hf);
+        axi_write(1, 32'h80  <<2, 32'hf);
+        axi_write(1, 32'h100 <<2, 32'hf);
+        axi_write(1, 32'h180 <<2, 32'hf);
 
-        // test register write
+        // write obs 
+        axi_write(1, 32'h200C, 32'h0);
+        axi_write(1, 32'h2010, 32'h0);
+        axi_write(1, 32'h2014, 32'h0);
+        axi_write(1, 32'h2018, 32'h0);
+
+        // log mode 
+        axi_write(1, 32'h201C, 32'h1) ; // LOG MODE
+
+        // read result
+        axi_read(1, 32'h2000, data_out);
+        $display("inference result : %h", data_out);
+
+        // write alarm levels 
+        axi_write(0, 32'h3c,  32'hff_ff_ff_10) ;
+
+        // write idle lenght 
+        axi_write(0, 32'h28,  32'h1f4) ; 
+
+        // launc pwr manager
         data_in = 32'h12345678;
         axi_write(0, 0, data_in);
-
         
         #(1000 * CLK_PERIOD) ;
         //$finish;

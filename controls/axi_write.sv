@@ -31,6 +31,10 @@ module axi_write (
     always_ff @( posedge seq_port.clk ) begin 
         if(seq_port.rst) begin
             valid <= 1'b0;
+            axi_master.aw_valid <= 1'b0;
+            axi_master.w_valid <= 1'b0;
+            axi_master.aw_addr <= 32'h0;
+            axi_master.w_data <= 32'h0;
         end else begin
             if(req && axi_master.aw_ready && axi_master.w_ready && ack==0) begin
                 if(maestro_req_i) begin
