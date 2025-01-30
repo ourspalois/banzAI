@@ -1,6 +1,8 @@
 // controls for the big bayesian machine 
+`include "adam/macros.svh"
 
 module chip_control #(
+    `ADAM_CFG_PARAMS
   )(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_port

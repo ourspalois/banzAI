@@ -11,7 +11,8 @@ module banzAI #(
 
   // pwr controler 
   PWR_CTRL #(
-    .reg_num(16)
+    .reg_num(16), 
+    `ADAM_CFG_PARAMS_MAP
   ) pwr_ctrl(
     .seq_port(seq_port),
     .axi_port(axi_slave[0]), 
@@ -20,6 +21,7 @@ module banzAI #(
   
   // chip controler 
   chip_control #(
+    `ADAM_CFG_PARAMS_MAP
   ) chip_ctrl(
     .seq_port(seq_port),
     .axi_port(axi_slave[1])

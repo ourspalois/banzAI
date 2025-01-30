@@ -27,6 +27,7 @@ module testbench #(
     ADAM_SEQ seq () ;
 
     banzAI #(
+        `ADAM_CFG_PARAMS_MAP
     ) dut(
         .seq_port(seq),
         .axi_slave(axi_slave), 
