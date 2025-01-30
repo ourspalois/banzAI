@@ -69,9 +69,15 @@ module testbench #(
             @(posedge clk);
             axi_master.ar_ready = 1;
             if(axi_master.ar_valid) begin
-                $display("Read from address %h", axi_master.ar_addr);
-                axi_master.r_valid = 1;
-                axi_master.r_data = 32'h12345678;
+                if(axi_master.ar_addr >= MMAP_ACCEL.start && axi_master.ar_addr < MMAP_ACCEL.end_) begin
+                    $display("reading from accelerator, at adress : %h", axi_master.ar_addr);
+                    axi_read(1, axi_master.ar_addr ^ MMAP_ACCEL.start, axi_master.r_data);
+                    axi_master.r_valid = 1;
+                end else begin
+                    $display("Read from address %h", axi_master.ar_addr);
+                    axi_master.r_valid = 1;
+                    axi_master.r_data = 32'h00_00_00_00;
+                end
             end else begin
                 axi_master.r_valid = 0;
             end
@@ -153,7 +159,7 @@ module testbench #(
         // read result
         axi_read(1, 32'h2000, data_out);
         $display("inference result : %h", data_out);
-
+        
         // write alarm levels 
         axi_write(0, 32'h3c,  32'hff_ff_ff_10) ;
 

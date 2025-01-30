@@ -253,7 +253,7 @@ module PWR_CTRL #(
         case (compute_read)
           GET: begin
             if(axi_read_ready && !compute_done) begin
-              axi_read_addr <= MMAP_ACCEL.start ; 
+              axi_read_addr <= MMAP_ACCEL.start + 32'h2000 ; 
               axi_read_req <= 1;
               compute_read <= RECEIVE;
             end
@@ -272,6 +272,9 @@ module PWR_CTRL #(
         endcase
       end else if(state == IDLE) begin
         axi_read_req <= 0;
+      end else begin
+        compute_done <= 0;
+        fetch_counter <= 32'h0;
       end
     end
   end
