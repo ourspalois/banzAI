@@ -35,9 +35,11 @@ module axi_write (
             axi_master.w_valid <= 1'b0;
             axi_master.w_strb <= 4'b1111;
             axi_master.aw_addr <= 32'h0;
+            axi_master.b_ready <= 1'b0;
             axi_master.w_data <= 32'h0;
+            ack <= 1'b0;
         end else begin
-            if(req && axi_master.aw_ready && ack==0) begin
+            if(req && ack==0 && axi_master.aw_valid == 0) begin
                 if(maestro_req_i) begin
                     arbiter <= 1'b1;
                     axi_master.aw_addr <= maestro_adress_i;
@@ -51,15 +53,14 @@ module axi_write (
                 axi_master.w_valid <= 1'b1;
                 axi_master.w_strb <= 4'b1111;
                 axi_master.b_ready <= 1'b1;
+            end else if(axi_master.aw_ready && axi_master.w_ready && axi_master.aw_valid) begin
+                axi_master.aw_valid <= 1'b0;
+                axi_master.w_valid <= 1'b0;
                 ack <= 1'b1;
             end else if(axi_master.b_valid) begin
-                axi_master.b_ready <= 1'b0; 
-                axi_master.aw_valid <= 1'b0;
-                axi_master.w_valid <= 1'b0;
+                axi_master.b_ready <= 1'b0;
                 ack <= 1'b0;
             end else begin
-                axi_master.aw_valid <= 1'b0;
-                axi_master.w_valid <= 1'b0;
                 ack <= 1'b0;
             end 
         end

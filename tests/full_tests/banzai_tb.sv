@@ -45,9 +45,9 @@ module testbench #(
     initial begin
         forever begin
             @(posedge clk);
-            axi_master.aw_ready = 1;
-            axi_master.w_ready = 1;
             if(axi_master.aw_valid) begin
+                axi_master.aw_ready = 1;
+                axi_master.w_ready = 1;
                 if(axi_master.aw_addr >= MMAP_SYSCFG.start && axi_master.aw_addr < MMAP_SYSCFG.end_) begin
                     $display("CHANGING POWER STATE of component %b, with state %b", (axi_master.aw_addr - MMAP_SYSCFG.start )>>2, axi_master.w_data ); 
                 end else if(axi_master.aw_addr >= MMAP_ACCEL.start && axi_master.aw_addr < MMAP_ACCEL.end_) begin
