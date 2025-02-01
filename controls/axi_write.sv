@@ -44,7 +44,7 @@ module axi_write (
             ack <= 1'b0;
         end else begin
 
-            if(req && (ack == 0) && (axi_master.aw_valid == 0 && axi_master.w_valid == 0)) begin
+            if(req && (ack == 0) && (axi_master.aw_valid == 0 && axi_master.w_valid == 0) && !(w_responded && aw_reponded)) begin
                 if(maestro_req_i) begin
                     arbiter <= 1'b1;
                     axi_master.aw_addr <= maestro_adress_i;
