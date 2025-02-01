@@ -82,14 +82,17 @@ module chip_control #(
         if(read_regs) begin
           axi_port.r_data <= registers[read_addr[0+:3]];
           axi_port.r_valid <= 1'b1;
+          axi_port.r_resp <= 2'b00;
           read_regs <= 1'b0;
         end else if(read_result && read_counter>= 4 && read_output_count==11 ) begin
           axi_port.r_data <= registers[0];
           axi_port.r_valid <= 1'b1;
+          axi_port.r_resp <= 2'b00;
           read_result <= 1'b0;
         end else if(read_mem && read_counter>= 4) begin
           axi_port.r_data <= read_data;
           axi_port.r_valid <= 1'b1;
+          axi_port.r_resp <= 2'b00;
           read_mem <= 1'b0;
         end else begin
           axi_port.r_valid <= 1'b0;
