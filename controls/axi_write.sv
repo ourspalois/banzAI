@@ -36,7 +36,7 @@ module axi_write (
             axi_master.aw_addr <= 32'h0;
             axi_master.w_data <= 32'h0;
         end else begin
-            if(req && axi_master.aw_ready && axi_master.w_ready && ack==0) begin
+            if(req && axi_master.aw_ready && ack==0) begin
                 if(maestro_req_i) begin
                     arbiter <= 1'b1;
                     axi_master.aw_addr <= maestro_adress_i;

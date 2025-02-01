@@ -239,8 +239,8 @@ module PWR_CTRL #(
             end
           end
           WRITE: begin
-            fsm_req <= 0;
             if(fsm_ack) begin
+              fsm_req <= 0;
               fetch_state <= GET_SEND;
               fetch_counter <= fetch_counter + 32'h1;
             end 
