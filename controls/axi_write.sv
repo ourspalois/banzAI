@@ -33,6 +33,7 @@ module axi_write (
             valid <= 1'b0;
             axi_master.aw_valid <= 1'b0;
             axi_master.w_valid <= 1'b0;
+            axi_master.w_strb <= 4'b1111;
             axi_master.aw_addr <= 32'h0;
             axi_master.w_data <= 32'h0;
         end else begin
@@ -47,6 +48,8 @@ module axi_write (
                     axi_master.w_data <= fsm_data_i;
                 end
                 axi_master.aw_valid <= 1'b1;
+                axi_master.w_valid <= 1'b1;
+                axi_master.w_strb <= 4'b1111;
                 axi_master.b_ready <= 1'b1;
                 ack <= 1'b1;
             end else if(axi_master.b_valid) begin
