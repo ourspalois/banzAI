@@ -26,7 +26,7 @@ module testbench #(
 
     ADAM_SEQ seq () ;
 
-    banzAI #(
+    banzai_wrap #(
         `ADAM_CFG_PARAMS_MAP
     ) dut(
         .seq_port(seq),

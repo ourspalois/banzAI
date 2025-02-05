@@ -396,7 +396,7 @@ module chip_control #(
         CBL = 1'b0;
         CSL = 1'b0;
         CWL = 1'b0;
-        inference =
+        inference = 1'b0;
         load_seed <= 1'b0;
         read_1 <= 1'b0;
         read_8 <= 1'b0;
@@ -459,23 +459,22 @@ module chip_control #(
   end
 
   // part 3 Bayesian machine
-  // Bayesian_stoch_log chip (
-  //   .clk(clk),
-  //   .CBL(CBL),
-  //   .CBLEN(CBLEN),
-  //   .CSL(CSL),
-  //   .CWL(CWL),
-  //   .inference(inference),
-  //   .load_seed(load_seed),
-  //   .read_1(read_1),
-  //   .read_8(read_8),
-  //   .load_mem(load_mem),
-  //   .read_out(read_out),
-  //   .adr_full_col(adr_full_col),
-  //   .adr_full_row(adr_full_row),
-  //   .stoch_log(stoch_log),
-  //   .seeds(seeds),
-  //   .bit_out(bit_out)
-  // ) ;
-  assign bit_out = 4'b0;
+   Bayesian_stoch_log chip (
+     .clk(clk),
+     .CBL(CBL),
+     .CBLEN(CBLEN),
+     .CSL(CSL),
+     .CWL(CWL),
+     .inference(inference),
+     .load_seed(load_seed),
+     .read_1(read_1),
+     .read_8(read_8),
+     .load_mem(load_mem),
+     .read_out(read_out),
+     .adr_full_col(adr_full_col),
+     .adr_full_row(adr_full_row),
+     .stoch_log(stoch_log),
+     .seeds(seeds),
+     .bit_out(bit_out)
+  ) ;
 endmodule
