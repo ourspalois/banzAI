@@ -275,6 +275,17 @@ module chip_control #(
         seeds <= 8'b0;
       end
       READ_SETUP: begin
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        CSL <= 1'b0;
+        CWL <= 1'b0;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        read_8 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b0;
         if(read_result) begin
           adr_full_col <= {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
           adr_full_row <= {2'b0, registers[3+read_counter][8:3]};
@@ -282,49 +293,156 @@ module chip_control #(
           adr_full_col <= {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
           adr_full_row <= {read_addr[10:9], read_addr[6:1]};
         end
-        
+        seeds <= 8'b0;
         read_out <= 1'b0;
       end
       READ_PRECHARGE: begin
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
         CSL <= 1'b1;
         CWL <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
+        seeds <= 8'b0;
       end
       READ_PULSE: begin
         CSL <= 1'b0;
+        CWL <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
+        seeds <= 8'b0;
       end
       READ_OFF: begin
+        CSL <= 1'b0;
         CWL <= 1'b0;
         inference <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
       end
       READ_OUT: begin
         read_out <= 1'b1;
+        CSL <= 1'b0;
+        CWL <= 1'b0;
+        inference <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        load_mem <= 1'b0;
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
       end
       READ_ZERO: begin
         read_8 <= 1'b0;
         load_mem <= 1'b1;
         stoch_log <= 1'b0;
+        read_out <= 1'b1;
+        CSL <= 1'b0;
+        CWL <= 1'b0;
+        inference <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
       end
       READOUT_RESULT: begin
         read_out <= 1'b1;
+        CSL <= 1'b0;
+        CWL <= 1'b0;
+        inference <= 1'b1;
+        CBL <= 1'b0;
+        CBLEN <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        load_mem <= 1'b0;
+        stoch_log <= 1'b1;
+        read_8 <= 1'b1;
       end
 
       WRITE_ADDR: begin
         adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
         adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+
         CBLEN <= 1'b1;
+        CBL <= 1'b0;
+        CSL <= 1'b0;
+        CWL <= 1'b0;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        read_8 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b0;
+        seeds <= 8'b0;
       end
       WRITE_PECHARGE: begin
         CBL <= write_data[write_counter];
         CSL <= registers[1][0];
+        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+
+        CBLEN <= 1'b1;
+        CWL <= 1'b0;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        read_8 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b0;
+        seeds <= 8'b0;
       end
       WRITE_PULSE: begin
         CWL <= 1'b1;
+        CSL <= registers[1][0];
+        CBL <= write_data[write_counter];
+        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+
+        CBLEN <= 1'b1;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        read_8 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b0;
+        seeds <= 8'b0;
       end
       WRITE_CUTOFF: begin
+        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
         CWL <= 1'b0;
+        CSL <= registers[1][0];
         CBL <= 1'b0;
+        CBLEN <= 1'b1;
+        inference <= 1'b0;
+        load_seed <= 1'b0;
+        read_1 <= 1'b0;
+        read_8 <= 1'b0;
+        load_mem <= 1'b0;
+        read_out <= 1'b0;
+        stoch_log <= 1'b0;
+        seeds <= 8'b0;
       end
     endcase
   end
