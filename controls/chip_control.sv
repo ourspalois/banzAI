@@ -11,7 +11,8 @@ module chip_control #(
   assign clk = seq_port.clk;
   logic rst_n ;
   assign rst_n = ~seq_port.rst;
-  logic [31:0] registers [0:7]; // 8 registers of 32 bits
+  logic [31:0] registers_0 ;
+  logic [31:0] registers [1:7]; // 8 registers of 32 bits
   // 0 : result
   // 1 : pgm mode 0: reset | 1: set
   // 2 : pulse lenght
@@ -38,7 +39,6 @@ module chip_control #(
   // part 1 AXI interface and control registers
   always_ff @(posedge clk) begin
     if (!rst_n) begin
-      registers[0] <= 32'h0;
       registers[1] <= 32'h0;
       registers[2] <= 32'h1;
       registers[3] <= 32'h0;
@@ -51,15 +51,19 @@ module chip_control #(
       axi_port.ar_ready <= 1'b0;
       axi_port.aw_ready <= 1'b0;
       axi_port.w_ready <= 1'b0;
+      // aaa
+      axi_port.b_resp <= 2'b00;
+      axi_port.r_resp <= 2'b00;
+      axi_port.r_data <= 'b0;
+
       read_mem <= 1'b0;
       read_regs <= 1'b0;
-      read_data <= 32'b0;
-      read_output_count <= 8'b0;
-      read_pulse_counter <= 1'b0;
       read_result <= 1'b0;
       write_mem <= 1'b0;
       write_regs <= 1'b0;
-      write_pulse_counter <= 16'b0;
+      read_addr <= 'b0;
+      write_data <= 'b0;
+      write_addr <= 'b0;
     end
     else begin
       // read management
@@ -85,7 +89,7 @@ module chip_control #(
           axi_port.r_resp <= 2'b00;
           read_regs <= 1'b0;
         end else if(read_result && read_counter>= 4 && read_output_count==11 ) begin
-          axi_port.r_data <= registers[0];
+          axi_port.r_data <= registers_0;
           axi_port.r_valid <= 1'b1;
           axi_port.r_resp <= 2'b00;
           read_result <= 1'b0;
@@ -117,7 +121,9 @@ module chip_control #(
 
       // write response management
       if(write_regs && axi_port.b_ready) begin
-        registers[write_addr[0+:3]] <= write_data;
+        if (write_addr !=0) begin
+          registers[write_addr[0+:3]] <= write_data;
+        end
         axi_port.b_resp <= 0;
         axi_port.b_valid <= 1'b1;
         write_regs <= 1'b0;
@@ -151,10 +157,15 @@ module chip_control #(
 
   always_ff @(posedge clk) begin
     if(!rst_n) begin
+      registers_0 <= 'b0;
       state <= IDLE;
       read_count <= 8'b0;
       read_counter <= 16'b0;
       write_counter <= 16'b0;
+      read_data <= 32'b0;
+      read_output_count <= 8'b0;
+      read_pulse_counter <= 1'b0;
+      write_pulse_counter <= 16'b0;
     end else begin
       case (state)
         IDLE: begin
@@ -219,10 +230,10 @@ module chip_control #(
             state <= READ_ZERO;
           end else if(read_output_count > 2) begin
             //read_data <= (read_data<<1) | 1'(bit_out[read_addr[10:9]]);
-            registers[0][7:0] <= (registers[0][7:0]<<1)   | 1'(bit_out[0]);
-            registers[0][15:8] <= (registers[0][15:8]<<1) | 1'(bit_out[1]);
-            registers[0][23:16] <= (registers[0][23:16]<<1) | 1'(bit_out[2]);
-            registers[0][31:24] <= (registers[0][31:24]<<1) | 1'(bit_out[3]);
+            registers_0[7:0] <= (registers_0[7:0]<<1)   | 1'(bit_out[0]);
+            registers_0[15:8] <= (registers_0[15:8]<<1) | 1'(bit_out[1]);
+            registers_0[23:16] <= (registers_0[23:16]<<1) | 1'(bit_out[2]);
+            registers_0[31:24] <= (registers_0[31:24]<<1) | 1'(bit_out[3]);
             read_output_count <= read_output_count + 1;
           end else begin
             read_output_count <= read_output_count + 1;
@@ -259,133 +270,133 @@ module chip_control #(
   always_comb begin
     case(state) 
       IDLE: begin
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
-        adr_full_col <= 8'b0;
-        adr_full_row <= 8'b0;
-        seeds <= 8'b0;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        adr_full_col = 8'b0;
+        adr_full_row = 8'b0;
+        seeds = 8'b0;
       end
       READ_SETUP: begin
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
         if(read_result) begin
-          adr_full_col <= {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
-          adr_full_row <= {2'b0, registers[3+read_counter][8:3]};
+          adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
+          adr_full_row = {2'b0, registers[3+read_counter][8:3]};
         end else begin
-          adr_full_col <= {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
-          adr_full_row <= {read_addr[10:9], read_addr[6:1]};
+          adr_full_col = {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
+          adr_full_row = {read_addr[10:9], read_addr[6:1]};
         end
-        seeds <= 8'b0;
-        read_out <= 1'b0;
+        seeds = 8'b0;
+        read_out = 1'b0;
       end
       READ_PRECHARGE: begin
-        CSL <= 1'b1;
-        CWL <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
-        seeds <= 8'b0;
+        CSL = 1'b1;
+        CWL = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b1;
+        seeds = 8'b0;
       end
       READ_PULSE: begin
-        CSL <= 1'b0;
-        CWL <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
-        seeds <= 8'b0;
+        CSL = 1'b0;
+        CWL = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b1;
+        seeds = 8'b0;
       end
       READ_OFF: begin
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b1;
       end
       READ_OUT: begin
-        read_out <= 1'b1;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        load_mem <= 1'b0;
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
+        read_out = 1'b1;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b1;
       end
       READ_ZERO: begin
-        read_8 <= 1'b0;
-        load_mem <= 1'b1;
-        stoch_log <= 1'b0;
-        read_out <= 1'b1;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b1;
+        stoch_log = 1'b0;
+        read_out = 1'b1;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
       end
       READOUT_RESULT: begin
-        read_out <= 1'b1;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b1;
-        CBL <= 1'b0;
-        CBLEN <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        load_mem <= 1'b0;
-        stoch_log <= 1'b1;
-        read_8 <= 1'b1;
+        read_out = 1'b1;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b1;
       end
 
       WRITE_ADDR: begin
-        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
-        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+        adr_full_col = {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row = {write_addr[10:9], write_addr[6:1]};
 
-        CBLEN <= 1'b1;
-        CBL <= 1'b0;
-        CSL <= 1'b0;
-        CWL <= 1'b0;
-        inference <= 1'b0;
+        CBLEN = 1'b1;
+        CBL = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference =
         load_seed <= 1'b0;
         read_1 <= 1'b0;
         read_8 <= 1'b0;
@@ -448,22 +459,23 @@ module chip_control #(
   end
 
   // part 3 Bayesian machine
-  Bayesian_stoch_log chip (
-    .clk(clk),
-    .CBL(CBL),
-    .CBLEN(CBLEN),
-    .CSL(CSL),
-    .CWL(CWL),
-    .inference(inference),
-    .load_seed(load_seed),
-    .read_1(read_1),
-    .read_8(read_8),
-    .load_mem(load_mem),
-    .read_out(read_out),
-    .adr_full_col(adr_full_col),
-    .adr_full_row(adr_full_row),
-    .stoch_log(stoch_log),
-    .seeds(seeds),
-    .bit_out(bit_out)
-  ) ;
+  // Bayesian_stoch_log chip (
+  //   .clk(clk),
+  //   .CBL(CBL),
+  //   .CBLEN(CBLEN),
+  //   .CSL(CSL),
+  //   .CWL(CWL),
+  //   .inference(inference),
+  //   .load_seed(load_seed),
+  //   .read_1(read_1),
+  //   .read_8(read_8),
+  //   .load_mem(load_mem),
+  //   .read_out(read_out),
+  //   .adr_full_col(adr_full_col),
+  //   .adr_full_row(adr_full_row),
+  //   .stoch_log(stoch_log),
+  //   .seeds(seeds),
+  //   .bit_out(bit_out)
+  // ) ;
+  assign bit_out = 4'b0;
 endmodule

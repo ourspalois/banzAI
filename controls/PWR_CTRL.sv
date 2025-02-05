@@ -328,6 +328,7 @@ module PWR_CTRL #(
           WAIT: transition_number <= 8'h1;
           FETCH: transition_number <= 8'h2;
           COMPUTE: if(state == WAIT) begin transition_number <= 8'h3; end else begin transition_number <= 8'h4; end
+          default: transition_number <= 8'h0;
       endcase
     end
   end
