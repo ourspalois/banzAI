@@ -96,6 +96,7 @@ module PWR_CTRL #(
       pwr_launch <= 'b0;
       read_addr <= 'b0;
       write_addr <= 'b0;
+      write_data <= 32'h0;
     end
     else begin
       // read management
@@ -169,12 +170,9 @@ module PWR_CTRL #(
   logic [31:0] axi_read_addr, axi_read_data ;
   logic axi_read_valid, axi_read_req, axi_read_ready ;
 
-  //FETCH
-  logic [31:0] fetched_data ; 
-
   //axi fsm write
   logic [31:0] fsm_adress, fsm_data ;
-  logic fsm_req, fsm_valid, fsm_ack ; // TODO:VALID is useless here
+  logic fsm_req, fsm_ack ; // TODO:VALID is useless here
 
   //COMPUTE 
   logic compute_done, alert ;
@@ -224,7 +222,11 @@ module PWR_CTRL #(
   always_ff @( posedge clk ) begin 
     if(seq_port.rst) begin
       fetch_state <= FETCH_IDLE;
-      compute_read <= GET;
+      compute_read <= COMPUTE_IDLE;
+      fetch_data <= 32'h0;
+      result <= 32'h0;
+      fetch_counter <= 32'h0;
+      compute_done <= 0;
     end else begin
       case (state)
         FETCH : begin
@@ -268,6 +270,7 @@ module PWR_CTRL #(
             RECEIVE: begin
               if(axi_read_valid) begin
                 compute_read <= COMPUTE_IDLE;
+                result <= axi_read_data;
                 compute_done <= 1;
               end
             end
@@ -307,7 +310,7 @@ module PWR_CTRL #(
           end
           GET_RECEIVE : begin
             axi_read_req <= 0;
-            axi_read_addr <= 32'0;
+            axi_read_addr <= 32'b0;
             fsm_req <= 0;
             fsm_adress <= 32'h0;
             fsm_data <= 32'h0;
@@ -388,23 +391,13 @@ module PWR_CTRL #(
     end
   end
 
-  // axi_read read_port(
-  //   .seq_port(seq_port),
-  //   .axi_master(axi_master),
-  //   .adress_i(axi_read_addr),
-  //   .req_i(axi_read_req),
-  //   .ready_o(axi_read_ready),
-  //   .data_o(axi_read_data),
-  //   .valid_o(axi_read_valid)
-  // ) ;
-
   //maestro management
   state_t old_state ; 
   logic [3:0] pwr_counter ;
   logic pwr_ctrl_en ; 
 
   logic [31:0] maestro_address, maestro_data ;
-  logic maestro_req, maestro_valid, maestro_ack ;
+  logic maestro_req, maestro_ack ;
   logic [7:0] transition_number, pwr_transition ; 
 
   // adress lookup table 
@@ -468,12 +461,10 @@ module PWR_CTRL #(
     .maestro_adress_i(maestro_address),
     .maestro_data_i(maestro_data),
     .maestro_req_i(maestro_req),
-    .maestro_valid_o(maestro_valid),
     .maestro_ack_o(maestro_ack),
     .fsm_adress_i(fsm_adress),
     .fsm_data_i(fsm_data),
     .fsm_req_i(fsm_req),
-    .fsm_valid_o(fsm_valid),
     .fsm_ack_o(fsm_ack),
     .adress_i(axi_read_addr),
     .req_i(axi_read_req),
@@ -481,11 +472,5 @@ module PWR_CTRL #(
     .data_o(axi_read_data),
     .valid_o(axi_read_valid)
   ) ;
-  //   always_comb begin
-  //     maestro_valid = 0;
-  //     maestro_ack = 0;
-  //     fsm_valid = 0;
-  //     fsm_ack = 0;
-  //   end
-  // `ADAM_AXIL_MST_TIE_OFF(axi_master);
+
 endmodule

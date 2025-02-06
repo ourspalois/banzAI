@@ -1,7 +1,7 @@
 #QUESTA
 HOME := ../../
 #list of sv files : testbench.sv and everything in .sv in rtl/
-SV_FOLDER := $(HOME)/../../powerflow/src $(HOME)includes $(HOME)/../powerflow/src
+SV_FOLDER := $(HOME)/controls/ $(HOME)includes  $(HOME)/rtl_chip
 SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir)/)
 SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv)) 
 
@@ -18,7 +18,7 @@ all: $(BUILD_DIR) compile simulate
 $(BUILD_DIR):
 	vlib $(BUILD_DIR)
 
-compile: $(BUILD_DIR)
+compile: clean $(BUILD_DIR)
 	vlog $(SV_INCLUDE) $(HOME)axi/src/axi_pkg.sv
 	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv $(HOME)includes/adam_cfg_pkg.sv
 	vlog $(SV_INCLUDE) +incdir+$(SVH_FILES) $(SV_FILES) banzai_tb.sv
@@ -27,7 +27,7 @@ simulate: compile
 	vsim $(VSIM_FLAGS) -do wave.cmd testbench & 
 
 clean:
-	rm test.txt transcript vsim.wlf
 	rm -r $(BUILD_DIR)
+	rm -r temp/work	
 
 .PHONY: all clean compile simulate gen_testbench
