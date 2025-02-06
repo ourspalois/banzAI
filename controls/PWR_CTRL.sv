@@ -252,7 +252,7 @@ module PWR_CTRL #(
               end
             end
             default: begin
-              fetch_state <= GET_SEND;
+              fetch_state <= FETCH_IDLE;
             end
           endcase
         end 

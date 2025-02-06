@@ -59,6 +59,9 @@ module testbench #(
                 axi_master.b_valid = 1;
             end else begin
                 axi_master.b_valid = 0;
+                axi_master.aw_ready = 1;
+                axi_master.w_ready = 1;
+                axi_master.b_resp = 2'b0;
             end
         end
     end
@@ -73,13 +76,17 @@ module testbench #(
                     $display("reading from accelerator, at adress : %h", axi_master.ar_addr);
                     axi_read(1, axi_master.ar_addr ^ MMAP_ACCEL.start, axi_master.r_data);
                     axi_master.r_valid = 1;
+                    axi_master.r_resp = 2'b0;
                 end else begin
                     $display("Read from address %h", axi_master.ar_addr);
                     axi_master.r_valid = 1;
                     axi_master.r_data = 32'h00_00_00_00;
+                    axi_master.r_resp = 2'b0;
                 end
             end else begin
                 axi_master.r_valid = 0;
+                axi_master.r_data = 32'h00_00_00_00;
+                axi_master.r_resp = 2'b0;
             end
         end
     end
@@ -132,9 +139,47 @@ module testbench #(
     logic [31:0] data_out;
 
     initial begin
+
+
+        //set all axi ports to idle 
+        virtual_axi_slave[0].ar_ready = 1;
+        virtual_axi_slave[0].ar_addr = 1;
+        virtual_axi_slave[0].ar_valid = 0;
+        virtual_axi_slave[0].ar_prot = 3'b000;
+        virtual_axi_slave[0].aw_ready = 1;
+        virtual_axi_slave[0].aw_addr = 1;
+        virtual_axi_slave[0].aw_valid = 0;
+        virtual_axi_slave[0].aw_prot = 3'b000;
+        virtual_axi_slave[0].w_ready = 1;
+        virtual_axi_slave[0].w_valid = 0;
+        virtual_axi_slave[0].w_strb = 4'b1111;
+        virtual_axi_slave[0].w_data = 32'h0;
+        virtual_axi_slave[0].b_valid = 0;
+        virtual_axi_slave[0].b_ready = 0;
+        virtual_axi_slave[0].r_valid = 0;
+        virtual_axi_slave[0].r_ready = 0;
+
+        virtual_axi_slave[1].ar_ready = 1;
+        virtual_axi_slave[1].ar_addr = 1;
+        virtual_axi_slave[1].ar_valid = 0;
+        virtual_axi_slave[1].ar_prot = 3'b000;
+        virtual_axi_slave[1].aw_ready = 1;
+        virtual_axi_slave[1].aw_addr = 1;
+        virtual_axi_slave[1].aw_valid = 0;
+        virtual_axi_slave[1].aw_prot = 3'b000;
+        virtual_axi_slave[1].w_ready = 1;
+        virtual_axi_slave[1].w_valid = 0;
+        virtual_axi_slave[1].w_strb = 4'b1111;
+        virtual_axi_slave[1].w_data = 32'h0;
+        virtual_axi_slave[1].b_valid = 0;
+        virtual_axi_slave[1].b_ready = 0;
+        virtual_axi_slave[1].r_valid = 0;
+        virtual_axi_slave[1].r_ready = 0;
+
         $display("Starting testbench");
         reset();
         $display("Reset complete");
+
 
         // first we program the chip 
         axi_write(1, 32'h0   <<2, 32'hf);
