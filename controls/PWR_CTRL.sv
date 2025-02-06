@@ -155,9 +155,10 @@ module PWR_CTRL #(
   end
 
   //PWR FSM 
-  typedef enum int { GET_SEND, GET_RECEIVE, WRITE } FETCH_t;
+  typedef enum int { FETCH_IDLE, GET_SEND, GET_RECEIVE, WRITE } FETCH_t;
   FETCH_t fetch_state ;
   logic [31:0] fetch_counter ;
+  logic [31:0] fetch_data ;
 
     // wait counter
   logic counter_done ;
@@ -177,7 +178,7 @@ module PWR_CTRL #(
 
   //COMPUTE 
   logic compute_done, alert ;
-  typedef enum int { GET, RECEIVE } read_ctrl_t;
+  typedef enum int { COMPUTE_IDLE, GET, RECEIVE } read_ctrl_t;
   read_ctrl_t compute_read ;
   logic [31:0] result ;
   always_comb begin
@@ -220,77 +221,156 @@ module PWR_CTRL #(
     end
   end
 
-  always_ff @( posedge clk) begin //TODO:PIPELINE read and writes 
+  always_ff @( posedge clk ) begin 
     if(seq_port.rst) begin
-      fetch_state <= GET_SEND;
-      fetch_counter <= 32'h0;
-      fsm_req <= 1'b0;
-      fsm_adress <= 32'h0;
-      fsm_data <= 32'h0;
-      compute_done <= 1'b0;
-      //axi_read_req <= 1'b0;
-      axi_read_addr <= 32'h0;
-      fetched_data <= 32'b0;
+      fetch_state <= FETCH_IDLE;
+      compute_read <= GET;
     end else begin
-      if(state == FETCH) begin
-        case (fetch_state)
-          GET_SEND: begin
-            fsm_req <= 0;
-            if(axi_read_ready && fetch_counter != 32'h4) begin
-              axi_read_addr <= registers[fetch_counter+11] ; 
-              axi_read_req <= 1;
+      case (state)
+        FETCH : begin
+          case (fetch_state)
+            FETCH_IDLE: begin
+              if(axi_read_ready && fetch_counter != 32'h4) begin
+                fetch_state <= GET_SEND;
+              end
+            end
+            GET_SEND: begin
               fetch_state <= GET_RECEIVE;
             end
+            GET_RECEIVE : begin
+              if(axi_read_valid) begin
+                fetch_state <= WRITE;
+                fetch_data <= axi_read_data;
+              end
+            end
+            WRITE: begin
+              if(fsm_ack) begin
+                fetch_state <= FETCH_IDLE;
+                fetch_counter <= fetch_counter + 32'h1;
+              end
+            end
+            default: begin
+              fetch_state <= GET_SEND;
+            end
+          endcase
+        end 
+
+        COMPUTE : begin
+          case (compute_read)
+            COMPUTE_IDLE: begin
+              if(axi_read_ready && !compute_done) begin
+                compute_read <= GET;
+              end
+            end
+            GET: begin
+              compute_read <= RECEIVE;
+            end
+            RECEIVE: begin
+              if(axi_read_valid) begin
+                compute_read <= COMPUTE_IDLE;
+                compute_done <= 1;
+              end
+            end
+            default: begin
+              compute_read <= GET;
+            end
+          endcase
+        end
+
+        default: begin
+          fetch_state <= FETCH_IDLE;
+          compute_read <= GET;
+          compute_done <= 0;
+          fetch_counter <= 32'h0;
+        end
+      endcase
+    end
+  end
+
+  always_comb begin 
+    case (state)
+      FETCH : begin
+        case (fetch_state)
+          FETCH_IDLE: begin
+            axi_read_req <= 0;
+            axi_read_addr <= 32'h0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
+          end
+          GET_SEND : begin
+            axi_read_req <= 1;
+            axi_read_addr <= registers[fetch_counter+11] ; 
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
           end
           GET_RECEIVE : begin
             axi_read_req <= 0;
-            if(axi_read_valid) begin
-              fetched_data <= axi_read_data;
-              fetch_state <= WRITE;
-              fsm_req <= 1;
-              fsm_adress <= registers[fetch_counter+6] ;
-              fsm_data <= axi_read_data; 
-            end
+            axi_read_addr <= 32'0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
           end
-          WRITE: begin
-            if(fsm_ack) begin
-              fsm_req <= 0;
-              fetch_state <= GET_SEND;
-              fetch_counter <= fetch_counter + 32'h1;
-            end 
+          WRITE : begin
+            axi_read_req <= 0;
+            axi_read_addr <= 32'h0;
+            fsm_req <= 1;
+            fsm_adress <= registers[fetch_counter+6] ;
+            fsm_data <= fetch_data;
           end
           default: begin
-            fetch_state <= GET_SEND;
+            axi_read_req <= 0;
+            axi_read_addr <= 32'h0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
           end
         endcase
-      end else if(state == COMPUTE) begin
+      end
+
+      COMPUTE : begin
         case (compute_read)
+          COMPUTE_IDLE: begin
+            axi_read_req <= 0;
+            axi_read_addr <= 32'h0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
+          end
           GET: begin
-            if(axi_read_ready && !compute_done) begin
-              axi_read_addr <= MMAP_ACCEL.start + 32'h2000 ; 
-              axi_read_req <= 1;
-              compute_read <= RECEIVE;
-            end
+            axi_read_req <= 1;
+            axi_read_addr <= MMAP_ACCEL.start + 32'h2000 ;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
           end
           RECEIVE: begin
             axi_read_req <= 0;
-            if(axi_read_valid) begin
-              compute_done <= 1;
-              result <= axi_read_data;
-              compute_read <= GET;
-            end
+            axi_read_addr <= 32'h0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
           end
           default: begin
-            compute_read <= GET;
-          end 
+            axi_read_req <= 0;
+            axi_read_addr <= 32'h0;
+            fsm_req <= 0;
+            fsm_adress <= 32'h0;
+            fsm_data <= 32'h0;
+          end
         endcase
-      end else if(state == IDLE) begin
-        axi_read_req <= 0;
-      end else begin
-        compute_done <= 0;
-        fetch_counter <= 32'h0;
       end
-    end
+
+      default: begin
+        axi_read_req <= 0;
+        axi_read_addr <= 32'h0;
+        fsm_req <= 0;
+        fsm_adress <= 32'h0;
+        fsm_data <= 32'h0;
+      end
+    endcase
+    
   end
 
   // wait counter
