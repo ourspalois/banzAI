@@ -1,7 +1,7 @@
 #QUESTA
 HOME := ../../
 #list of sv files : testbench.sv and everything in .sv in rtl/
-SV_FOLDER := $(HOME)rtl_chip $(HOME)controls $(HOME)includes
+SV_FOLDER := $(HOME)/../../powerflow/src $(HOME)includes $(HOME)/../powerflow/src
 SV_INCLUDE := $(foreach dir, $(SV_FOLDER), +incdir+$(dir)/)
 SV_FILES := $(wildcard $(foreach dir, $(SV_FOLDER), $(dir)/*.sv)) 
 

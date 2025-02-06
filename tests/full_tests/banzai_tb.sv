@@ -1,7 +1,7 @@
 `include "adam/macros.svh"
 
 module testbench #(
-    parameter CLK_PERIOD = 10, 
+    parameter CLK_PERIOD = 40000, 
     `ADAM_CFG_PARAMS
 )();
 
@@ -37,7 +37,7 @@ module testbench #(
     assign seq.clk = clk;
     assign seq.rst = ~rst_n;
     initial begin
-        clk = 1;
+        clk = 0;
         forever #(CLK_PERIOD/2) clk = ~clk;
     end   
 

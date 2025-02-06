@@ -124,12 +124,13 @@ module chip_control #(
         if (write_addr !=0) begin
           registers[write_addr[0+:3]] <= write_data;
         end
-        axi_port.b_resp <= 0;
         axi_port.b_valid <= 1'b1;
+        axi_port.b_resp <= 0;
         write_regs <= 1'b0;
       end else if(write_mem && write_counter == 32) begin
         axi_port.b_resp <= 0;
         axi_port.b_valid <= 1'b1;
+
         write_mem <= 1'b0;
       end else begin
         axi_port.b_valid <= 1'b0;
@@ -397,84 +398,85 @@ module chip_control #(
         CSL = 1'b0;
         CWL = 1'b0;
         inference = 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
-        seeds <= 8'b0;
-      end
-      WRITE_PECHARGE: begin
-        CBL <= write_data[write_counter];
-        CSL <= registers[1][0];
-        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
-        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        seeds = 8'b0;
+            end
+            WRITE_PECHARGE: begin
+        CBL = write_data[write_counter];
+        CSL = registers[1][0];
+        adr_full_col = {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row = {write_addr[10:9], write_addr[6:1]};
 
-        CBLEN <= 1'b1;
-        CWL <= 1'b0;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
-        seeds <= 8'b0;
-      end
-      WRITE_PULSE: begin
-        CWL <= 1'b1;
-        CSL <= registers[1][0];
-        CBL <= write_data[write_counter];
-        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
-        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
+        CBLEN = 1'b1;
+        CWL = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        seeds = 8'b0;
+            end
+            WRITE_PULSE: begin
+        CWL = 1'b1;
+        CSL = registers[1][0];
+        CBL = write_data[write_counter];
+        adr_full_col = {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row = {write_addr[10:9], write_addr[6:1]};
 
-        CBLEN <= 1'b1;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
-        seeds <= 8'b0;
-      end
-      WRITE_CUTOFF: begin
-        adr_full_col <= {write_addr[8:7], write_addr[0], write_counter[4:0]};
-        adr_full_row <= {write_addr[10:9], write_addr[6:1]};
-        CWL <= 1'b0;
-        CSL <= registers[1][0];
-        CBL <= 1'b0;
-        CBLEN <= 1'b1;
-        inference <= 1'b0;
-        load_seed <= 1'b0;
-        read_1 <= 1'b0;
-        read_8 <= 1'b0;
-        load_mem <= 1'b0;
-        read_out <= 1'b0;
-        stoch_log <= 1'b0;
-        seeds <= 8'b0;
+        CBLEN = 1'b1;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        seeds = 8'b0;
+            end
+            WRITE_CUTOFF: begin
+        adr_full_col = {write_addr[8:7], write_addr[0], write_counter[4:0]};
+        adr_full_row = {write_addr[10:9], write_addr[6:1]};
+        CWL = 1'b0;
+        CSL = registers[1][0];
+        CBL = 1'b0;
+        CBLEN = 1'b1;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        seeds = 8'b0;
       end
     endcase
   end
 
   // part 3 Bayesian machine
-   Bayesian_stoch_log chip (
-     .clk(clk),
-     .CBL(CBL),
-     .CBLEN(CBLEN),
-     .CSL(CSL),
-     .CWL(CWL),
-     .inference(inference),
-     .load_seed(load_seed),
-     .read_1(read_1),
-     .read_8(read_8),
-     .load_mem(load_mem),
-     .read_out(read_out),
-     .adr_full_col(adr_full_col),
-     .adr_full_row(adr_full_row),
-     .stoch_log(stoch_log),
-     .seeds(seeds),
-     .bit_out(bit_out)
-  ) ;
+  //  Bayesian_stoch_log chip (
+  //    .clk(clk),
+  //    .CBL(CBL),
+  //    .CBLEN(CBLEN),
+  //    .CSL(CSL),
+  //    .CWL(CWL),
+  //    .inference(inference),
+  //    .load_seed(load_seed),
+  //    .read_1(read_1),
+  //    .read_8(read_8),
+  //    .load_mem(load_mem),
+  //    .read_out(read_out),
+  //    .adr_full_col(adr_full_col),
+  //    .adr_full_row(adr_full_row),
+  //    .stoch_log(stoch_log),
+  //    .seeds(seeds),
+  //    .bit_out(bit_out)
+  // ) ;
+  assign bit_out = 4'b0;
 endmodule

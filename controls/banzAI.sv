@@ -19,6 +19,9 @@ module banzAI #(
     .axi_master(axi_master)
   );
   
+  //  `ADAM_AXIL_MST_TIE_OFF(axi_master);
+  //  `ADAM_AXIL_SLV_TIE_OFF(axi_slave[0]);
+
   // chip controler 
   chip_control #(
     `ADAM_CFG_PARAMS_MAP
@@ -26,5 +29,8 @@ module banzAI #(
     .seq_port(seq_port),
     .axi_port(axi_slave[1])
   );
+
+  //`ADAM_AXIL_SLV_TIE_OFF(axi_slave[0]);
+ 
 
 endmodule

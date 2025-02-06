@@ -51,8 +51,8 @@ module PWR_CTRL #(
   typedef enum int { IDLE, WAIT, FETCH, COMPUTE } state_t;
   state_t state ;
 
-  always_ff @( posedge clk ) begin 
-    if(!rst_n) begin
+  always_ff @( posedge clk) begin 
+    if(seq_port.rst) begin
       registers[0] <= 32'h0;
       //transitions
       registers[1] <= 32'hffff_ffff;
@@ -90,6 +90,12 @@ module PWR_CTRL #(
       axi_port.w_ready <= 1'b0;
       read_regs <= 1'b0;
       write_regs <= 1'b0;
+      axi_port.b_resp <= 'b0;
+      axi_port.r_resp <= 0;
+      axi_port.r_data <= 32'h0;
+      pwr_launch <= 'b0;
+      read_addr <= 'b0;
+      write_addr <= 'b0;
     end
     else begin
       // read management
@@ -108,9 +114,11 @@ module PWR_CTRL #(
         if(read_regs) begin
           axi_port.r_data <= registers[read_addr[0+:3]];
           axi_port.r_valid <= 1'b1;
+          axi_port.r_resp <= 0;
           read_regs <= 1'b0;
         end else begin
           axi_port.r_valid <= 1'b0;
+          axi_port.r_resp <= 0;
         end
       end
 
@@ -172,9 +180,12 @@ module PWR_CTRL #(
   typedef enum int { GET, RECEIVE } read_ctrl_t;
   read_ctrl_t compute_read ;
   logic [31:0] result ;
+  always_comb begin
+    alert = 'b0;
+  end
 
-  always_ff @( posedge clk ) begin 
-    if(!rst_n) begin
+  always_ff @( posedge clk) begin 
+    if(seq_port.rst) begin
       state <= IDLE;
     end else begin
       case (state)
@@ -209,14 +220,17 @@ module PWR_CTRL #(
     end
   end
 
-  always_ff @( posedge clk ) begin //TODO:PIPELINE read and writes 
-    if(!rst_n) begin
+  always_ff @( posedge clk) begin //TODO:PIPELINE read and writes 
+    if(seq_port.rst) begin
       fetch_state <= GET_SEND;
       fetch_counter <= 32'h0;
       fsm_req <= 1'b0;
       fsm_adress <= 32'h0;
       fsm_data <= 32'h0;
       compute_done <= 1'b0;
+      //axi_read_req <= 1'b0;
+      axi_read_addr <= 32'h0;
+      fetched_data <= 32'b0;
     end else begin
       if(state == FETCH) begin
         case (fetch_state)
@@ -280,8 +294,8 @@ module PWR_CTRL #(
   end
 
   // wait counter
-  always_ff @( posedge clk ) begin
-    if(!rst_n) begin
+  always_ff @( posedge clk) begin
+    if(seq_port.rst) begin
       counter <= 32'h0;
     end else begin
       if(state == WAIT) begin
@@ -294,15 +308,15 @@ module PWR_CTRL #(
     end
   end
 
-  axi_read read_port(
-    .seq_port(seq_port),
-    .axi_master(axi_master),
-    .adress_i(axi_read_addr),
-    .req_i(axi_read_req),
-    .ready_o(axi_read_ready),
-    .data_o(axi_read_data),
-    .valid_o(axi_read_valid)
-  ) ;
+  // axi_read read_port(
+  //   .seq_port(seq_port),
+  //   .axi_master(axi_master),
+  //   .adress_i(axi_read_addr),
+  //   .req_i(axi_read_req),
+  //   .ready_o(axi_read_ready),
+  //   .data_o(axi_read_data),
+  //   .valid_o(axi_read_valid)
+  // ) ;
 
   //maestro management
   state_t old_state ; 
@@ -320,9 +334,6 @@ module PWR_CTRL #(
   assign maestro_adress_lut[2] = MMAP_SYSCFG.start + (4 * (6) + 1) * 4   ; //LPRAM
 
   always_comb begin 
-    if(!rst_n) begin
-      transition_number <= 8'h0;
-    end else begin
       case (old_state)
           IDLE: transition_number <= 8'h0;
           WAIT: transition_number <= 8'h1;
@@ -330,11 +341,10 @@ module PWR_CTRL #(
           COMPUTE: if(state == WAIT) begin transition_number <= 8'h3; end else begin transition_number <= 8'h4; end
           default: transition_number <= 8'h0;
       endcase
-    end
   end
 
-  always_ff @( posedge clk ) begin
-    if(!rst_n) begin
+  always_ff @( posedge clk) begin
+    if(seq_port.rst) begin
       old_state <= IDLE;      
       pwr_ctrl_en <= 0;
       pwr_counter <= 32'h0;
@@ -384,7 +394,18 @@ module PWR_CTRL #(
     .fsm_data_i(fsm_data),
     .fsm_req_i(fsm_req),
     .fsm_valid_o(fsm_valid),
-    .fsm_ack_o(fsm_ack)
+    .fsm_ack_o(fsm_ack),
+    .adress_i(axi_read_addr),
+    .req_i(axi_read_req),
+    .ready_o(axi_read_ready),
+    .data_o(axi_read_data),
+    .valid_o(axi_read_valid)
   ) ;
-    
+  //   always_comb begin
+  //     maestro_valid = 0;
+  //     maestro_ack = 0;
+  //     fsm_valid = 0;
+  //     fsm_ack = 0;
+  //   end
+  // `ADAM_AXIL_MST_TIE_OFF(axi_master);
 endmodule
