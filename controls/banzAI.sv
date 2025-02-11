@@ -32,7 +32,7 @@ module banzAI #(
     .seq_port(seq_port),
     .axi_port(axi_slave[1])
     `ifdef SYNTHESIS
-    ,.chip_ports(chip_port)
+    ,.chip_port(chip_port)
     `endif
   );
 
