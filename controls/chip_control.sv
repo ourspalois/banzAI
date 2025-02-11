@@ -6,6 +6,10 @@ module chip_control #(
   )(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_port
+    `ifdef SYNTHESYS 
+    ,chip_ports.Master chip_port
+    `endif 
+
   ) ;
   logic clk ; 
   assign clk = seq_port.clk;
@@ -458,24 +462,40 @@ module chip_control #(
       end
     endcase
   end
-
-  // part 3 Bayesian machine
-    Bayesian_stoch_log chip (
-      .clk(clk),
-      .CBL(CBL),
-      .CBLEN(CBLEN),
-      .CSL(CSL),
-      .CWL(CWL),
-      .inference(inference),
-      .load_seed(load_seed),
-      .read_1(read_1),
-      .read_8(read_8),
-      .load_mem(load_mem),
-      .read_out(read_out),
-      .adr_full_col(adr_full_col),
-      .adr_full_row(adr_full_row),
-      .stoch_log(stoch_log),
-      .seeds(seeds),
-      .bit_out(bit_out)
-   ) ;
+  `ifndef SYNTHESYS 
+    // part 3 Bayesian machine
+      Bayesian_stoch_log chip (
+        .clk(clk),
+        .CBL(CBL),
+        .CBLEN(CBLEN),
+        .CSL(CSL),
+        .CWL(CWL),
+        .inference(inference),
+        .load_seed(load_seed),
+        .read_1(read_1),
+        .read_8(read_8),
+        .load_mem(load_mem),
+        .read_out(read_out),
+        .adr_full_col(adr_full_col),
+        .adr_full_row(adr_full_row),
+        .stoch_log(stoch_log),
+        .seeds(seeds),
+        .bit_out(bit_out)
+    ) ;
+  `else
+    assign chip_port.clk = clk;
+    assign chip_port.CBL = CBL;
+    assign chip_port.CBLEN = CBLEN;
+    assign chip_port.CWL = CWL;
+    assign chip_port.inference = inference;
+    assign chip_port.load_seed = load_seed;
+    assign chip_port.read_1 = read_1;
+    assign chip_port.read_8 = read_8;
+    assign chip_port.load_mem = load_mem;
+    assign chip_port.read_out = read_out;
+    assign chip_port.addr_full_col = adr_full_col;
+    assign chip_port.addr_full_row = adr_full_row;
+    assign chip_port.seeds = seeds;
+    assign bit_out = chip_port.bit_out;
+  `endif
 endmodule

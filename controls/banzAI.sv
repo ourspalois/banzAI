@@ -7,6 +7,9 @@ module banzAI #(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_slave[2], 
     AXI_LITE.Master axi_master
+    `ifdef SYNTHESYS
+    ,chip_ports chip_port
+    `endif
   ) ;
 
   // pwr controler 
@@ -28,6 +31,9 @@ module banzAI #(
   ) chip_ctrl(
     .seq_port(seq_port),
     .axi_port(axi_slave[1])
+    `ifdef SYNTHESYS
+    ,.chip_ports(chip_port)
+    `endif
   );
 
   //`ADAM_AXIL_SLV_TIE_OFF(axi_slave[0]);
