@@ -8,7 +8,7 @@ module banzAI #(
     AXI_LITE.Slave axi_slave[2], 
     AXI_LITE.Master axi_master
     `ifdef SYNTHESYS
-    ,chip_ports chip_port
+    ,chip_ports.Master chip_port
     `endif
   ) ;
 
