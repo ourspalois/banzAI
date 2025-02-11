@@ -6,7 +6,7 @@ module chip_control #(
   )(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_port
-    `ifdef SYNTHESYS 
+    `ifdef SYNTHESIS 
     ,chip_ports.Master chip_port
     `endif 
 
@@ -462,7 +462,7 @@ module chip_control #(
       end
     endcase
   end
-  `ifndef SYNTHESYS 
+  `ifndef SYNTHESIS 
     // part 3 Bayesian machine
       Bayesian_stoch_log chip (
         .clk(clk),

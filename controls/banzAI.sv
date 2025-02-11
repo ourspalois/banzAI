@@ -7,7 +7,7 @@ module banzAI #(
     ADAM_SEQ.Slave seq_port,
     AXI_LITE.Slave axi_slave[2], 
     AXI_LITE.Master axi_master
-    `ifdef SYNTHESYS
+    `ifdef SYNTHESIS
     ,chip_ports.Master chip_port
     `endif
   ) ;
@@ -31,7 +31,7 @@ module banzAI #(
   ) chip_ctrl(
     .seq_port(seq_port),
     .axi_port(axi_slave[1])
-    `ifdef SYNTHESYS
+    `ifdef SYNTHESIS
     ,.chip_ports(chip_port)
     `endif
   );
