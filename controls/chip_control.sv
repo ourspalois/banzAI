@@ -485,6 +485,7 @@ module chip_control #(
   `else
     assign chip_port.clk = clk;
     assign chip_port.CBL = CBL;
+    assign chip_port.CSL = CSL;
     assign chip_port.CBLEN = CBLEN;
     assign chip_port.CWL = CWL;
     assign chip_port.inference = inference;
@@ -493,6 +494,7 @@ module chip_control #(
     assign chip_port.read_8 = read_8;
     assign chip_port.load_mem = load_mem;
     assign chip_port.read_out = read_out;
+    assign chip_port.stoch_log = stoch_log;
     assign chip_port.addr_full_col = adr_full_col;
     assign chip_port.addr_full_row = adr_full_row;
     assign chip_port.seeds = seeds;
