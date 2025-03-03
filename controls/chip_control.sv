@@ -351,7 +351,7 @@ module chip_control #(
         load_mem = 1'b0;
         read_out = 1'b0;
         stoch_log = 1'b1;
-        read_8 = 1'b1;
+        read_8 = 1'b0;
       end
       READ_OUT: begin
         read_out = 1'b1;
@@ -364,7 +364,7 @@ module chip_control #(
         read_1 = 1'b0;
         load_mem = 1'b0;
         stoch_log = 1'b1;
-        read_8 = 1'b1;
+        read_8 = 1'b0;
       end
       READ_ZERO: begin
         read_8 = 1'b0;

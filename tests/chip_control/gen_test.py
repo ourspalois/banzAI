@@ -28,7 +28,7 @@ def random_full_write_full_read(filename) :
 
 def random_full_write_and_inference(filename, num_test=1000) :
     # Generate 16 arrays of arrays of 64 linex with two 32 bits number 
-    Array = np.random.randint(0, 2**8, (16, 64, 8), dtype=np.uint8) 
+    Array = np.random.randint(0, 2**6, (16, 64, 8), dtype=np.uint8) 
     Array[0][1][0] = 1
     Array[1][1][1] = 2
     Array[2][1][2] = 3

@@ -1,6 +1,5 @@
-add wave -r /testbench/axi_port/*
-add wave /testbench/dut/*
-add wave sim:/testbench/dut/registers
-add wave sim:/testbench/dut/chip/DATA_next
+vcd file banzai.vcd
+vcd add -r /*
+vcd on banzai.vcd 
 
 run -all

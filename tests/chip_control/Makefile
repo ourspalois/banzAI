@@ -24,12 +24,13 @@ $(BUILD_DIR):
 	vlib $(BUILD_DIR)
 
 compile: $(BUILD_DIR)
+	vcom $(HOME)/rtl_chip/MC_64x64_FULL_upd.vhd
 	vlog $(SV_INCLUDE) $(HOME)axi/src/axi_pkg.sv
-	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv
+	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv $(HOME)includes/adam_cfg_pkg.sv
 	vlog $(SV_INCLUDE) $(SV_FILES) chip_control_tb.sv
 
 simulate: compile
-	vsim $(VSIM_FLAGS) -do wave.cmd testbench &
+	vsim -c $(VSIM_FLAGS) -do wave.cmd testbench
 
 clean:
 	rm test.txt transcript vsim.wlf
