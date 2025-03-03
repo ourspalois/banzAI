@@ -146,7 +146,7 @@ module chip_control #(
   // part 2 FSM
   
   typedef enum int {
-    IDLE, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_OUT, READ_ZERO,
+    IDLE, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_SEP_0, READ_OUT, READ_ZERO,
     WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
     READOUT_RESULT
 
@@ -196,11 +196,14 @@ module chip_control #(
         end
         READ_PULSE: begin
           if (read_pulse_counter == 1) begin
-            state <= READ_OFF;
+            state <= READ_SEP_0;
             read_pulse_counter <= 1'b0;
           end else begin
             read_pulse_counter <= 1'b1;
           end
+        end
+        READ_SEP_0: begin
+          state <= READ_OFF;
         end
         READ_OFF: begin
           if(read_mem ) begin
@@ -285,7 +288,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b0;
+        stoch_log = 1'b1;
         adr_full_col = 8'b0;
         adr_full_row = 8'b0;
         seeds = 8'b0;
@@ -301,7 +304,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b0;
+        stoch_log = 1'b1;
         if(read_result) begin
           adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
           adr_full_row = {2'b0, registers[3+read_counter][8:3]};
@@ -340,6 +343,20 @@ module chip_control #(
         read_8 = 1'b1;
         seeds = 8'b0;
       end
+      READ_SEP_0: begin
+        CSL = 1'b0;
+        CWL = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        read_8 = 1'b0;
+        seeds = 8'b0;
+      end
       READ_OFF: begin
         CSL = 1'b0;
         CWL = 1'b0;
@@ -369,7 +386,7 @@ module chip_control #(
       READ_ZERO: begin
         read_8 = 1'b0;
         load_mem = 1'b1;
-        stoch_log = 1'b0;
+        stoch_log = 1'b1;
         read_out = 1'b1;
         CSL = 1'b0;
         CWL = 1'b0;
