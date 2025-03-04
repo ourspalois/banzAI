@@ -40,6 +40,8 @@ module chip_control #(
   logic ready ; 
   assign ready = ~(read_mem || read_regs || read_result || write_mem || write_regs) ;
 
+  logic fsm_ready, fsm_done ; 
+
   // part 1 AXI interface and control registers
   always_ff @(posedge clk) begin
     if (!rst_n) begin
@@ -71,7 +73,7 @@ module chip_control #(
     end
     else begin
       // read management
-      if(axi_port.ar_valid && ready) begin
+      if(axi_port.ar_valid && ready && fsm_ready) begin
         if(axi_port.ar_addr < 32'h2000) begin
           read_mem <= 1'b1;
         end else if(axi_port.ar_addr == 32'h2000) begin
@@ -108,7 +110,7 @@ module chip_control #(
       end
 
       // write management
-      if(axi_port.aw_valid && axi_port.w_valid && ready) begin
+      if(axi_port.aw_valid && axi_port.w_valid && ready && fsm_ready) begin
         if(axi_port.aw_addr < 31'h2000) begin
           write_mem <= 1'b1;
         end else begin
@@ -142,11 +144,50 @@ module chip_control #(
 
     end
   end
+  // SIGNAL AND CLOCK DEPHASER  
+  logic clk_1, clk_chip; 
+  logic [3:0] dephaser_counter ; 
+
+  always_ff @(posedge clk ) begin
+    if(!rst_n) begin 
+      dephaser_counter <= 4'b0;
+      clk_1 <= 1'b0;
+      clk_chip <= 1'b0;
+    end else begin
+      case (dephaser_counter)
+        4'h0: begin
+          clk_1 <= 1'b0;
+          clk_chip <= 1'b0;
+        end
+        4'h1: begin
+          clk_1 <= 1'b1;
+          clk_chip <= 1'b0;
+        end
+        4'h2: begin
+          clk_1 <= 1'b1;
+          clk_chip <= 1'b1;
+        end
+        4'h3: begin
+          clk_1 <= 1'b0;
+          clk_chip <= 1'b0; 
+        end 
+        default: begin
+          clk_1 <= 1'b0;
+          clk_chip <= 1'b0;
+        end
+      endcase
+      if(dephaser_counter == 3) begin
+        dephaser_counter <= 4'h0;
+      end else begin
+        dephaser_counter <= dephaser_counter + 1;
+      end
+    end
+  end
 
   // part 2 FSM
   
   typedef enum int {
-    IDLE, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_SEP_0, READ_OUT, READ_ZERO,
+    IDLE, READ_RESET, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_SEP_0, READ_OUT, READ_ZERO,
     WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
     READOUT_RESULT
 
@@ -160,7 +201,7 @@ module chip_control #(
   logic [7:0] seeds;
   logic [3:0] bit_out;
 
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk_1 or negedge rst_n) begin
     if(!rst_n) begin
       registers_0 <= 'b0;
       state <= IDLE;
@@ -172,6 +213,7 @@ module chip_control #(
       read_pulse_counter <= 1'b0;
       write_pulse_counter <= 16'b0;
       write_precharge_counter <= 16'b0;
+      fsm_ready <= 1'b1;
     end else begin
       case (state)
         IDLE: begin
@@ -181,13 +223,22 @@ module chip_control #(
             write_counter <= 16'b0;
           end else begin
             if(read_mem) begin
-              state <= READ_SETUP;
+              state <= READ_RESET;
+              fsm_ready <= 1'b0;
             end else if(read_result) begin 
               state <= READ_SETUP;
+              fsm_ready <= 1'b0;
             end else if (write_mem) begin
               state <= WRITE_ADDR;
+              fsm_ready <= 1'b0;
+            end else begin
+              state <= IDLE;
+              fsm_ready <= 1'b1;
             end
           end
+        end
+        READ_RESET: begin
+          state <= READ_SETUP;
         end
         READ_SETUP: begin
           state <= READ_PRECHARGE;
@@ -213,17 +264,17 @@ module chip_control #(
             if(read_counter == 3) begin
               state <= READOUT_RESULT; 
             end else begin
-              state <= IDLE;
+              state <= READ_RESET;
             end
             read_counter <= read_counter + 1;
           end
         end
         READ_OUT: begin
-          if(read_output_count == 11) begin
+          if(read_output_count == 10) begin
             read_output_count <= 8'b0;
             read_counter <= read_counter + 1;
             state <= READ_ZERO;
-          end else if(read_output_count > 2) begin
+          end else if(read_output_count > 1) begin
             read_data <= (read_data<<1) | 1'(bit_out[read_addr[10:9]]);
             read_output_count <= read_output_count + 1;
           end else begin
@@ -234,10 +285,10 @@ module chip_control #(
           state <= IDLE;
         end
         READOUT_RESULT: begin
-          if(read_output_count == 11) begin
+          if(read_output_count == 10) begin
             read_output_count <= 8'b0;
             state <= READ_ZERO;
-          end else if(read_output_count > 2) begin
+          end else if(read_output_count > 1) begin
             //read_data <= (read_data<<1) | 1'(bit_out[read_addr[10:9]]);
             registers_0[7:0] <= (registers_0[7:0]<<1)   | 1'(bit_out[0]);
             registers_0[15:8] <= (registers_0[15:8]<<1) | 1'(bit_out[1]);
@@ -285,6 +336,22 @@ module chip_control #(
   always_comb begin
     case(state) 
       IDLE: begin
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        adr_full_col = 8'b0;
+        adr_full_row = 8'b0;
+        seeds = 8'b0;
+      end
+      READ_RESET: begin
         CBL = 1'b0;
         CBLEN = 1'b0;
         CSL = 1'b0;
@@ -489,7 +556,7 @@ module chip_control #(
   `ifndef SYNTHESIS 
     // part 3 Bayesian machine
       Bayesian_stoch_log chip (
-        .clk(clk),
+        .clk(clk_chip),
         .CBL(CBL),
         .CBLEN(CBLEN),
         .CSL(CSL),
@@ -507,7 +574,7 @@ module chip_control #(
         .bit_out(bit_out)
     ) ;
   `else
-    assign chip_port.clk = clk;
+    assign chip_port.clk = clk_chip;
     assign chip_port.CBL = CBL;
     assign chip_port.CSL = CSL;
     assign chip_port.CBLEN = CBLEN;

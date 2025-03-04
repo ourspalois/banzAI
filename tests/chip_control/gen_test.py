@@ -93,4 +93,4 @@ if __name__ == "__main__":
 
     np.random.seed(0)
     memory = random_full_write_full_read(filename)
-    memory = random_full_write_and_inference(filename)
+    #memory = random_full_write_and_inference(filename)

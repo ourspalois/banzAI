@@ -73,7 +73,7 @@ module testbench #(
         end
         
         rst_n = 0;
-        #30 ;
+        #1000 ;
         rst_n = 1;
         #30 ; 
         #(CLK_PERIOD/2);

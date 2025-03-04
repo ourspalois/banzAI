@@ -5,3 +5,4 @@ transcript
 temp/
 *.vcd
 *temp/*
+.config/
