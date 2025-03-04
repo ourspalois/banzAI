@@ -33,8 +33,8 @@ $(BUILD_DIR):
 	vlib $(BUILD_DIR)
 
 compile: $(BUILD_DIR)
-#	vcom $(RRAM_FILE_VHDL)
-	vlog $(RRAM_FILE_SV)
+	vcom $(RRAM_FILE_VHDL)
+#	vlog $(RRAM_FILE_SV)
 	vlog $(DK_FILES) $(POST_SYNTH_NETLIST) 
 	vlog $(SV_INCLUDE) $(HOME)axi/src/axi_pkg.sv
 	vlog $(SV_INCLUDE) +incdir+$(HOME)axi/include $(HOME)axi/src/axi_intf.sv $(HOME)includes/adam_cfg_pkg.sv

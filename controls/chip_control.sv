@@ -187,7 +187,7 @@ module chip_control #(
   // part 2 FSM
   
   typedef enum int {
-    IDLE, READ_RESET, READ_SETUP, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_SEP_0, READ_OUT, READ_ZERO,
+    IDLE, READ_RESET, READ_SETUP, READ_SETUP_1, READ_SETUP_2, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_PAUSE_0, READ_SEP_0, READ_OUT, READ_ZERO,
     WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
     READOUT_RESULT
 
@@ -241,6 +241,12 @@ module chip_control #(
           state <= READ_SETUP;
         end
         READ_SETUP: begin
+          state <= READ_SETUP_1;
+        end
+        READ_SETUP_1: begin
+          state <= READ_SETUP_2;
+        end
+        READ_SETUP_2: begin
           state <= READ_PRECHARGE;
         end
         READ_PRECHARGE: begin
@@ -255,6 +261,9 @@ module chip_control #(
           end
         end
         READ_SEP_0: begin
+          state <= READ_PAUSE_0;
+        end
+        READ_PAUSE_0: begin
           state <= READ_OFF;
         end
         READ_OFF: begin
@@ -389,6 +398,51 @@ module chip_control #(
         seeds = 8'b0;
         read_out = 1'b0;
       end
+      READ_SETUP_1: begin
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b1;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        if(read_result) begin
+          adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
+          adr_full_row = {2'b0, registers[3+read_counter][8:3]};
+        end else begin
+          adr_full_col = {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
+          adr_full_row = {read_addr[10:9], read_addr[6:1]};
+        end
+        seeds = 8'b0;
+        read_out = 1'b0;
+      end
+      READ_SETUP_2: begin
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b1;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b1;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        if(read_result) begin
+          adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
+          adr_full_row = {2'b0, registers[3+read_counter][8:3]};
+        end else begin
+          adr_full_col = {read_addr[8:7], 3'b0, read_addr[0], ~read_counter[1:0]}; 
+          adr_full_row = {read_addr[10:9], read_addr[6:1]};
+        end
+        seeds = 8'b0;
+        read_out = 1'b0;
+      end
+
       READ_PRECHARGE: begin
         CSL = 1'b1;
         CWL = 1'b1;
@@ -431,6 +485,22 @@ module chip_control #(
         read_8 = 1'b0;
         seeds = 8'b0;
       end
+      READ_PAUSE_0: begin 
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        read_8 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b1;
+        adr_full_col = 8'b0;
+        adr_full_row = 8'b0;
+        seeds = 8'b0;
+      end
       READ_OFF: begin
         CSL = 1'b0;
         CWL = 1'b0;
@@ -459,7 +529,7 @@ module chip_control #(
       end
       READ_ZERO: begin
         read_8 = 1'b0;
-        load_mem = 1'b1;
+        load_mem = 1'b0;
         stoch_log = 1'b1;
         read_out = 1'b1;
         CSL = 1'b0;
