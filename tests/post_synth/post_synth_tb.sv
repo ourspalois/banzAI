@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module testbench #(
     parameter CLK_PERIOD = 10    
 )();

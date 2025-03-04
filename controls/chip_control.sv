@@ -35,7 +35,7 @@ module chip_control #(
   logic write_mem, write_regs ;
   logic [10:0] write_addr ;// western reading style, likelihood arrays are continious in memory
   logic [31:0] write_data ;
-  logic [15:0] write_counter, write_pulse_counter ;
+  logic [15:0] write_counter, write_pulse_counter, write_precharge_counter ;
 
   logic ready ; 
   assign ready = ~(read_mem || read_regs || read_result || write_mem || write_regs) ;
@@ -171,6 +171,7 @@ module chip_control #(
       read_output_count <= 8'b0;
       read_pulse_counter <= 1'b0;
       write_pulse_counter <= 16'b0;
+      write_precharge_counter <= 16'b0;
     end else begin
       case (state)
         IDLE: begin
@@ -252,7 +253,13 @@ module chip_control #(
           state <= WRITE_PECHARGE;
         end
         WRITE_PECHARGE: begin
-          state <= WRITE_PULSE;
+          if(write_precharge_counter >= 2)begin 
+            state <= WRITE_PULSE;
+            write_precharge_counter <= 16'b0;
+          end else begin
+            state <= WRITE_PECHARGE;
+            write_precharge_counter <= write_precharge_counter + 1;
+          end
         end
         WRITE_PULSE: begin
           if(write_pulse_counter >= registers[2]) begin
@@ -286,7 +293,7 @@ module chip_control #(
         load_seed = 1'b0;
         read_1 = 1'b0;
         read_8 = 1'b0;
-        load_mem = 1'b0;
+        load_mem = 1'b1;
         read_out = 1'b0;
         stoch_log = 1'b1;
         adr_full_col = 8'b0;

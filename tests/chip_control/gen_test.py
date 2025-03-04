@@ -84,7 +84,7 @@ def random_full_write_and_inference(filename, num_test=1000) :
 
 if __name__ == "__main__": 
     import os
-    filename = "test.txt"
+    filename = "test_vector.txt"
     # create file
     if not os.path.isfile(filename):
         pass

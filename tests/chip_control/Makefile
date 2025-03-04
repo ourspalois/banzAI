@@ -1,6 +1,6 @@
 #conda env name with a running jax install 
 # cause I need jax (because I am a crackhead)
-CONDA_ENV = .EQUINOX_ENV
+CONDA_ENV = EQUINOX_ENV
 
 HOME := ../../
 
@@ -30,7 +30,7 @@ compile: $(BUILD_DIR)
 	vlog $(SV_INCLUDE) $(SV_FILES) chip_control_tb.sv
 
 simulate: compile
-	vsim -c $(VSIM_FLAGS) -do wave.cmd testbench
+	vsim -c -suppress 3009 $(VSIM_FLAGS) -do wave.cmd testbench
 
 clean:
 	rm test.txt transcript vsim.wlf
