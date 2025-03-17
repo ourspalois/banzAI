@@ -57,6 +57,25 @@ module testbench #(
         #CLK_PERIOD ;
     endtask
 
+    task force_seeds();
+        // Directly force the value to the register in the DUT
+        force dut.chip.CDT.col_lfsr[0].lfsr.rnd = 8'heb;
+        force dut.chip.CDT.col_lfsr[1].lfsr.rnd = 8'hfb;
+        force dut.chip.CDT.col_lfsr[2].lfsr.rnd = 8'h7f;
+        force dut.chip.CDT.col_lfsr[3].lfsr.rnd = 8'h5c;
+        $display("Forced seeds");
+    endtask
+
+    task release_seeds();
+        // Release the forced value
+        release dut.chip.CDT.col_lfsr[0].lfsr.rnd;
+        release dut.chip.CDT.col_lfsr[1].lfsr.rnd;
+        release dut.chip.CDT.col_lfsr[2].lfsr.rnd;
+        release dut.chip.CDT.col_lfsr[3].lfsr.rnd;
+
+        $display("Released seeds");
+    endtask
+
     logic [31:0] data_in;
     logic [31:0] expected_data;
     logic [31:0] data_out;
@@ -76,6 +95,10 @@ module testbench #(
         rst_n = 1;
         #30 ; 
         #(CLK_PERIOD/2);
+
+        // Example usage of force and release
+        force_seeds() ; 
+        release_seeds() ;
 
         while (!$feof(file)) begin
             $fgets(line, file);

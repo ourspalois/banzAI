@@ -22,13 +22,14 @@ module chip_control #(
   // 2 : pulse lenght
   // 3 .. 6 : O1, O2, O3, O4 
   // 7 : stoch_log : 0 : stoch / 1 : log
+  // 8..11 : seeds 
 
   logic read_mem, read_regs ;
   logic [10:0] read_addr ;// western reading style, likelihood arrays are continious in memory
   logic [31:0] read_data ;
   logic [15:0] read_counter ;
   logic read_pulse_counter ;
-  logic [7:0]  read_output_count ; 
+  logic [10:0]  read_output_count ; 
 
   logic read_result ;
 
@@ -41,6 +42,12 @@ module chip_control #(
   assign ready = ~(read_mem || read_regs || read_result || write_mem || write_regs) ;
 
   logic fsm_ready, fsm_done ; 
+  typedef enum int {
+    IDLE, READ_RESET, READ_SETUP, READ_SETUP_1, READ_SETUP_2, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_PAUSE_0, READ_SEP_0, LOG_READ_OUT, READ_ZERO,
+    WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
+    LOG_READOUT_RESULT, STOCH_READOUT_RESULT
+  } state_t;
+  state_t state;
 
   // part 1 AXI interface and control registers
   always_ff @(posedge clk) begin
@@ -51,7 +58,7 @@ module chip_control #(
       registers[4] <= 32'h0;
       registers[5] <= 32'h0;
       registers[6] <= 32'h0;
-      registers[7] <= 32'h1;
+      registers[7] <= 32'h0;
       axi_port.r_valid <= 1'b0;
       axi_port.b_valid <= 1'b0;
       axi_port.ar_ready <= 1'b0;
@@ -94,11 +101,13 @@ module chip_control #(
           axi_port.r_valid <= 1'b1;
           axi_port.r_resp <= 2'b00;
           read_regs <= 1'b0;
-        end else if(read_result && read_counter>= 4 && read_output_count==11 ) begin
-          axi_port.r_data <= registers_0;
-          axi_port.r_valid <= 1'b1;
-          axi_port.r_resp <= 2'b00;
-          read_result <= 1'b0;
+        end else if(read_result && 1'b1) begin
+          if((state==LOG_READOUT_RESULT && read_output_count==10) || (state==STOCH_READOUT_RESULT && read_output_count==257)) begin 
+            axi_port.r_data <= registers_0;
+            axi_port.r_valid <= 1'b1;
+            axi_port.r_resp <= 2'b00;
+            read_result <= 1'b0;
+          end 
         end else if(read_mem && read_counter>= 4) begin
           axi_port.r_data <= read_data;
           axi_port.r_valid <= 1'b1;
@@ -185,14 +194,6 @@ module chip_control #(
   end
 
   // part 2 FSM
-  
-  typedef enum int {
-    IDLE, READ_RESET, READ_SETUP, READ_SETUP_1, READ_SETUP_2, READ_PRECHARGE, READ_PULSE, READ_OFF, READ_PAUSE_0, READ_SEP_0, READ_OUT, READ_ZERO,
-    WRITE_ADDR, WRITE_PECHARGE, WRITE_PULSE, WRITE_CUTOFF,
-    READOUT_RESULT
-
-  } state_t;
-  state_t state;
 
   logic [7:0] read_count ;
 
@@ -268,17 +269,22 @@ module chip_control #(
         end
         READ_OFF: begin
           if(read_mem ) begin
-            state <= READ_OUT;
+            state <= LOG_READ_OUT;
           end else if (read_result) begin
             if(read_counter == 3) begin
-              state <= READOUT_RESULT; 
+              if(registers[7] == 1'b0) begin
+                registers_0 <= 32'b0;
+                state <= STOCH_READOUT_RESULT;
+              end else begin
+                state <= LOG_READOUT_RESULT;
+              end
             end else begin
-              state <= READ_RESET;
+              state <= READ_SETUP;
             end
             read_counter <= read_counter + 1;
           end
         end
-        READ_OUT: begin
+        LOG_READ_OUT: begin
           if(read_output_count == 10) begin
             read_output_count <= 8'b0;
             read_counter <= read_counter + 1;
@@ -293,7 +299,7 @@ module chip_control #(
         READ_ZERO: begin
           state <= IDLE;
         end
-        READOUT_RESULT: begin
+        LOG_READOUT_RESULT: begin
           if(read_output_count == 10) begin
             read_output_count <= 8'b0;
             state <= READ_ZERO;
@@ -303,6 +309,22 @@ module chip_control #(
             registers_0[15:8] <= (registers_0[15:8]<<1) | 1'(bit_out[1]);
             registers_0[23:16] <= (registers_0[23:16]<<1) | 1'(bit_out[2]);
             registers_0[31:24] <= (registers_0[31:24]<<1) | 1'(bit_out[3]);
+            read_output_count <= read_output_count + 1;
+          end else begin
+            read_output_count <= read_output_count + 1;
+          end
+        end
+
+        STOCH_READOUT_RESULT: begin
+          if(read_output_count == 257) begin
+            read_output_count <= 8'b0;
+            state <= READ_ZERO;
+          end else if(read_output_count > 1) begin
+            //read_data <= (read_data<<1) | 1'(bit_out[read_addr[10:9]]);
+            registers_0[7:0] <= registers_0[7:0] + 1'(bit_out[0]);
+            registers_0[15:8] <= registers_0[15:8] + 1'(bit_out[1]);
+            registers_0[23:16] <= registers_0[23:16] + 1'(bit_out[2]);
+            registers_0[31:24] <= registers_0[31:24] + 1'(bit_out[3]);
             read_output_count <= read_output_count + 1;
           end else begin
             read_output_count <= read_output_count + 1;
@@ -355,7 +377,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         adr_full_col = 8'b0;
         adr_full_row = 8'b0;
         seeds = 8'b0;
@@ -371,7 +393,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b1;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         adr_full_col = 8'b0;
         adr_full_row = 8'b0;
         seeds = 8'b0;
@@ -387,7 +409,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         if(read_result) begin
           adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
           adr_full_row = {2'b0, registers[3+read_counter][8:3]};
@@ -409,7 +431,7 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         if(read_result) begin
           adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
           adr_full_row = {2'b0, registers[3+read_counter][8:3]};
@@ -431,7 +453,7 @@ module chip_control #(
         read_8 = 1'b1;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         if(read_result) begin
           adr_full_col = {read_counter[1:0], 3'b0, registers[3+read_counter][2:0]}; 
           adr_full_row = {2'b0, registers[3+read_counter][8:3]};
@@ -453,7 +475,7 @@ module chip_control #(
         read_1 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         read_8 = 1'b1;
         seeds = 8'b0;
       end
@@ -467,7 +489,7 @@ module chip_control #(
         read_1 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         read_8 = 1'b1;
         seeds = 8'b0;
       end
@@ -481,7 +503,7 @@ module chip_control #(
         read_1 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         read_8 = 1'b0;
         seeds = 8'b0;
       end
@@ -496,25 +518,12 @@ module chip_control #(
         read_8 = 1'b0;
         load_mem = 1'b0;
         read_out = 1'b0;
-        stoch_log = 1'b1;
+        stoch_log = 1'b0;
         adr_full_col = 8'b0;
         adr_full_row = 8'b0;
         seeds = 8'b0;
       end
-      READ_OFF: begin
-        CSL = 1'b0;
-        CWL = 1'b0;
-        inference = 1'b1;
-        CBL = 1'b0;
-        CBLEN = 1'b0;
-        load_seed = 1'b0;
-        read_1 = 1'b0;
-        load_mem = 1'b0;
-        read_out = 1'b0;
-        stoch_log = 1'b1;
-        read_8 = 1'b0;
-      end
-      READ_OUT: begin
+      LOG_READ_OUT: begin
         read_out = 1'b1;
         CSL = 1'b0;
         CWL = 1'b0;
@@ -527,6 +536,20 @@ module chip_control #(
         stoch_log = 1'b1;
         read_8 = 1'b0;
       end
+      READ_OFF: begin
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        read_out = 1'b0;
+        stoch_log = 1'b0;
+        read_8 = 1'b0;
+      end
+
       READ_ZERO: begin
         read_8 = 1'b0;
         load_mem = 1'b0;
@@ -540,7 +563,7 @@ module chip_control #(
         load_seed = 1'b0;
         read_1 = 1'b0;
       end
-      READOUT_RESULT: begin
+      LOG_READOUT_RESULT: begin
         read_out = 1'b1;
         CSL = 1'b0;
         CWL = 1'b0;
@@ -552,6 +575,19 @@ module chip_control #(
         load_mem = 1'b0;
         stoch_log = 1'b1;
         read_8 = 1'b1;
+      end
+      STOCH_READOUT_RESULT : begin
+        read_out = 1'b0;
+        CSL = 1'b0;
+        CWL = 1'b0;
+        inference = 1'b1;
+        CBL = 1'b0;
+        CBLEN = 1'b0;
+        load_seed = 1'b0;
+        read_1 = 1'b0;
+        load_mem = 1'b0;
+        stoch_log = 1'b0;
+        read_8 = 1'b0;
       end
 
       WRITE_ADDR: begin
